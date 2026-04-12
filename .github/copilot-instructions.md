@@ -43,6 +43,8 @@ pio run -e xiao_esp32c3_ota -t upload    # OTA
 - Settings are persisted via ESP32 `Preferences` library with a tool-specific namespace.
 - `build_web.py` runs as a PlatformIO pre-build script automatically.
 - `mock_data.json` provides fake WebSocket responses for the dev server — keep it in sync with firmware responses.
+- **WiFi settings** (AP/STA mode, scanning, mDNS) are shared via `template.html` + `base.js`. Tools only need `wifiscan` and `savewifi` WS handlers in firmware — the web UI is automatic.
+- **When changing shared code**, update README.md and this file if the change affects the developer-facing API or patterns.
 
 ## Hardware Target
 

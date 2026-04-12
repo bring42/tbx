@@ -229,6 +229,26 @@ inline void tbWifiSave(const char* prefsNS, const char* ssid, const char* pass,
     ESP.restart();
 }
 
+// ---- WiFi Scan ----
+
+/**
+ * Run a WiFi scan and populate a JSON doc with results.
+ * Call from your "wifiscan" WS handler.
+ */
+template <typename TDoc>
+inline void tbWifiScanJson(TDoc& doc) {
+    int n = WiFi.scanNetworks();
+    doc["type"] = "wifiscan";
+    JsonArray arr = doc["networks"].to<JsonArray>();
+    for (int i = 0; i < n && i < 20; i++) {
+        JsonObject net = arr.add<JsonObject>();
+        net["ssid"] = WiFi.SSID(i);
+        net["rssi"] = WiFi.RSSI(i);
+        net["enc"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+    }
+    WiFi.scanDelete();
+}
+
 // ---- Convenience accessors ----
 
 inline const String& tbWifiAPSSID()    { return _tbw.apSSID; }

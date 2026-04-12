@@ -7,15 +7,32 @@
         "baud": 9600,
         "config": "8N1",
         "heap": 142800,
-        "mac": "AA:BB:CC:DD:EE:FF"
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "wifiMode": 0,
+        "staConnected": false,
+        "apIP": "192.168.4.1"
     },
     "settings": {
         "type": "settings",
         "ssid": "SerialTool",
+        "apHasPass": true,
+        "wifiMode": 0,
+        "staSSID": "",
+        "staHasPass": false,
+        "mdnsHost": "serialtool",
         "baud": 9600,
         "databits": 8,
         "parity": "N",
         "stopbits": 1
+    },
+    "wifiscan": {
+        "type": "wifiscan",
+        "networks": [
+            { "ssid": "HomeNetwork", "rssi": -42, "enc": true },
+            { "ssid": "Office-5G", "rssi": -58, "enc": true },
+            { "ssid": "Guest-WiFi", "rssi": -71, "enc": false },
+            { "ssid": "Neighbor", "rssi": -82, "enc": true }
+        ]
     },
     "history": {
         "type": "history",

@@ -30,8 +30,6 @@ function onMessage(data) {
         document.getElementById('txBytes').textContent = data.txBytes || 0;
         document.getElementById('uptime').textContent = formatUptime(data.uptime);
         document.getElementById('baudRate').textContent = data.baud || 9600;
-        document.getElementById('freeHeap').textContent = (data.heap || 0) + ' bytes';
-        document.getElementById('deviceMac').textContent = data.mac || '-';
     } else if (data.type === 'rx') {
         addLogEntry({ ...data, dir: 'RX' });
         document.getElementById('rxBytes').textContent = data.total || 0;
@@ -43,8 +41,6 @@ function onMessage(data) {
     } else if (data.type === 'history') {
         loadHistory(data);
     } else if (data.type === 'settings') {
-        document.getElementById('ssid').value = data.ssid || '';
-        document.getElementById('pass').value = '';
         document.getElementById('baudSelect').value = data.baud || 9600;
         document.getElementById('databitsSelect').value = data.databits || 8;
         document.getElementById('paritySelect').value = data.parity || 'N';
@@ -332,12 +328,4 @@ function saveSerialConfig() {
     });
 }
 
-function saveWifi() {
-    const ssid = document.getElementById('ssid').value.trim();
-    const pass = document.getElementById('pass').value;
-    if (ssid.length < 1 || ssid.length > 32) { showToast('SSID must be 1-32 chars', 'error'); return; }
-    if (pass.length > 0 && pass.length < 8) { showToast('Password must be 8+ chars or empty', 'error'); return; }
-    wsSend({ cmd: 'savewifi', ssid: ssid, pass: pass });
-    showToast('Settings saved! Restarting...', 'success');
-    setTimeout(() => location.reload(), 3000);
-}
+

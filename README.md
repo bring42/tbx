@@ -109,7 +109,40 @@ Functions available to every tool's `app.js`:
 | `formatTimestamp(ts)` | Format a Unix timestamp as local time |
 | `toggleSwitch(id, cb)` | Wire up a toggle switch element |
 | `downloadBlob(blob, fn)` | Trigger a file download |
+| `escapeHtml(str)` | Escape HTML special characters |
 | `tbInit()` | Called once on page load (auto-invoked) |
+
+## Shared WiFi Settings (`base.js` + `template.html`)
+
+Every tool automatically gets a WiFi configuration panel in the settings modal — no tool-specific code needed for basic WiFi.
+
+| Feature | Details |
+|---|---|
+| WiFi mode | AP Only, AP + Client, Client Only — with smart fallback |
+| AP config | SSID + password |
+| Client config | Network scan with signal bars, click-to-select, password |
+| mDNS | Configurable `.local` hostname |
+| Device info | IP, MAC, free heap |
+
+**Firmware side**: your `handleToolWS()` needs to handle `"wifiscan"` and pass WiFi fields in `"savewifi"`. The shared helpers do the heavy lifting:
+
+```cpp
+// In handleToolWS():
+if (strcmp(cmd, "wifiscan") == 0) {
+    JsonDocument resp;
+    tbWifiScanJson(resp);          // populates type + networks array
+    tbWsReply(client, resp);
+}
+else if (strcmp(cmd, "savewifi") == 0) {
+    tbWifiSave(PREFS_NS, doc["ssid"], doc["pass"] | "",
+               doc["wifiMode"] | -1,
+               doc["staSSID"] | (const char*)NULL,
+               doc["staPass"] | (const char*)NULL,
+               doc["mdnsHost"] | (const char*)NULL);
+}
+```
+
+**Web side**: `base.js` handles `settings`, `wifiscan`, and `status` messages internally before passing them to your `onMessage()` hook — you don't need to populate WiFi fields yourself.
 
 ## Dependencies
 

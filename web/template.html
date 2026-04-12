@@ -37,6 +37,65 @@
                 </div>
                 <div class="modal-body">
                     <!-- {{SETTINGS_BODY}} -->
+
+                    <!-- Shared WiFi settings (all tools) -->
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">WiFi</h3>
+                        <div class="setting-item">
+                            <div class="form-group">
+                                <label>Mode</label>
+                                <select id="wifiMode" onchange="tbUpdateWifiModeUI()">
+                                    <option value="0">Access Point Only</option>
+                                    <option value="1">AP + Client</option>
+                                    <option value="2">Client Only</option>
+                                </select>
+                                <div class="setting-hint" id="wifiModeDesc">Device creates its own WiFi network.</div>
+                            </div>
+                        </div>
+                        <div class="setting-item" id="apCard">
+                            <div class="form-group">
+                                <label for="wifiApSSID">AP Network Name (SSID)</label>
+                                <input type="text" id="wifiApSSID" placeholder="MyTool" maxlength="32">
+                            </div>
+                            <div class="form-group">
+                                <label for="wifiApPass">AP Password (min 8 chars)</label>
+                                <input type="password" id="wifiApPass" placeholder="Leave blank to keep current" maxlength="63" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <div class="setting-item" id="staCard" style="display:none;">
+                            <div class="form-group">
+                                <label for="wifiStaSSID">WiFi Network</label>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="wifiStaSSID" placeholder="Network name" style="flex:1;">
+                                    <button class="btn-secondary" id="scanBtn" onclick="tbScanWifi()" style="width:auto;padding:10px 16px;">Scan</button>
+                                </div>
+                                <div id="scanResults" class="scan-results" style="display:none;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="wifiStaPass">WiFi Password</label>
+                                <input type="password" id="wifiStaPass" placeholder="Leave blank for open network" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="form-group">
+                                <label for="wifiMdns">mDNS Hostname</label>
+                                <input type="text" id="wifiMdns" placeholder="e.g. mytool">
+                                <div class="setting-hint">Access via <span id="mdnsPreview">hostname</span>.local (leave blank to disable)</div>
+                            </div>
+                        </div>
+                        <button onclick="tbSaveWifi()" style="margin-top:4px;">Save &amp; Restart</button>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">Device Info</h3>
+                        <div class="setting-item">
+                            <p style="margin:0;font-size:0.875rem;color:var(--text-muted);">
+                                IP: <span id="deviceIp">-</span><br>
+                                MAC: <span id="deviceMac">-</span><br>
+                                Free Heap: <span id="freeHeap">-</span>
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

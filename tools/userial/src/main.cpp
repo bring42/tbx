@@ -66,9 +66,19 @@ void handleToolWS(AsyncWebSocketClient* client, JsonDocument& doc) {
         const char* ssid = doc["ssid"];
         const char* pass = doc["pass"];
         if (ssid && strlen(ssid) > 0 && strlen(ssid) <= 32) {
-            tbWifiSave(PREFS_NS, ssid, pass ? pass : "");
+            int wifiMode = doc["wifiMode"] | -1;
+            const char* staSSID = doc["staSSID"] | (const char*)NULL;
+            const char* staPass = doc["staPass"] | (const char*)NULL;
+            const char* mdnsHost = doc["mdnsHost"] | (const char*)NULL;
+            tbWifiSave(PREFS_NS, ssid, pass ? pass : "",
+                       wifiMode, staSSID, staPass, mdnsHost);
             // ^^ saves and restarts
         }
+    }
+    else if (strcmp(cmd, "wifiscan") == 0) {
+        JsonDocument resp;
+        tbWifiScanJson(resp);
+        tbWsReply(client, resp);
     }
     else if (strcmp(cmd, "clearHistory") == 0) {
         bytesRx = 0;

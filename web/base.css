@@ -357,6 +357,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     margin-left: 8px;
 }
 
+/* ---- WiFi scan results ---- */
+.scan-results {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-height: 200px;
+    overflow-y: auto;
+}
+.scan-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    transition: background 0.15s;
+}
+.scan-item:last-child { border-bottom: none; }
+.scan-item:hover { background: var(--bg-muted); }
+
 /* ---- Responsive ---- */
 @media (max-width: 500px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
