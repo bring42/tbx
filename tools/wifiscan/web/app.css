@@ -1,0 +1,119 @@
+/* WiFi Scanner Tool — specific styles */
+
+.scan-header-card { margin-bottom: 12px; }
+.scan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.scan-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+.scan-info #networkCount {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 1rem;
+}
+.scan-time {
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+.scan-btn {
+    width: auto;
+    padding: 8px 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.scan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Network cards */
+.network-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.network-card:last-child { margin-bottom: 0; }
+
+.network-signal {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 20px;
+}
+.signal-bar {
+    width: 4px;
+    border-radius: 1px;
+    background: var(--bg-muted);
+    transition: background 0.2s;
+}
+.signal-bar:nth-child(1) { height: 5px; }
+.signal-bar:nth-child(2) { height: 10px; }
+.signal-bar:nth-child(3) { height: 15px; }
+.signal-bar:nth-child(4) { height: 20px; }
+.signal-bar.filled { background: var(--success); }
+.signal-bars-0 .signal-bar.filled { background: var(--error); }
+.signal-bars-1 .signal-bar.filled { background: var(--error); }
+.signal-bars-2 .signal-bar.filled { background: var(--warning); }
+
+.network-info {
+    flex: 1;
+    min-width: 0;
+}
+.network-ssid {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.network-ssid.hidden-ssid {
+    color: var(--text-muted);
+    font-style: italic;
+}
+.network-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.network-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.network-rssi {
+    flex-shrink: 0;
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: right;
+    min-width: 52px;
+}
+
+.lock-icon, .open-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+}
+.lock-icon svg, .open-icon svg {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+}
+.lock-icon svg { fill: var(--warning); }
+.open-icon svg { fill: var(--success); }

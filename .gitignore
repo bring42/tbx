@@ -1,0 +1,5 @@
+.pio
+.vscode
+__pycache__
+src/_assembled.html
+src/web_ui_gz.h

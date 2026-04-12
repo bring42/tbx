@@ -1,0 +1,58 @@
+<!-- TABS -->
+
+<!-- BODY -->
+<div id="scanner" class="tab-content active">
+    <div class="card scan-header-card">
+        <div class="scan-header">
+            <div class="scan-info">
+                <span id="networkCount">0</span> networks found
+                <span class="scan-time">Last scan: <span id="lastScanTime">--:--:--</span></span>
+            </div>
+            <button class="scan-btn" id="scanBtn" onclick="triggerScan()">Scan Now</button>
+        </div>
+    </div>
+    <div id="networkList">
+        <div class="card" style="text-align:center;color:var(--text-muted);padding:40px 16px;">
+            Waiting for scan results...
+        </div>
+    </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="settings-section">
+    <h3 class="settings-section-title">Scanner</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label for="scanInterval">Auto-scan Interval (seconds)</label>
+            <input type="number" id="scanInterval" min="5" max="300" value="10">
+        </div>
+        <button onclick="saveSettings()" style="margin-top:12px;">Save Settings</button>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Network</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label for="ssid">AP Network Name (SSID)</label>
+            <input type="text" id="ssid" placeholder="WiFiScanner" maxlength="32">
+        </div>
+        <div class="form-group">
+            <label for="pass">AP Password (min 8 chars)</label>
+            <input type="password" id="pass" placeholder="Leave blank to keep current" maxlength="63" autocomplete="new-password">
+        </div>
+        <button onclick="saveWifi()" style="margin-top:12px;">Save &amp; Restart</button>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Device Info</h3>
+    <div class="setting-item">
+        <p style="margin:0;font-size:0.875rem;color:var(--text-muted);">
+            IP: <span id="deviceIp">192.168.4.1</span><br>
+            MAC: <span id="deviceMac">-</span><br>
+            Free Heap: <span id="freeHeap">-</span><br>
+            Uptime: <span id="uptime">-</span>
+        </p>
+    </div>
+</div>

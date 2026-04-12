@@ -1,0 +1,43 @@
+{
+    "status": {
+        "type": "status",
+        "rxBytes": 1247,
+        "txBytes": 384,
+        "uptime": 4520,
+        "baud": 9600,
+        "config": "8N1",
+        "heap": 142800,
+        "mac": "AA:BB:CC:DD:EE:FF"
+    },
+    "settings": {
+        "type": "settings",
+        "ssid": "SerialTool",
+        "baud": 9600,
+        "databits": 8,
+        "parity": "N",
+        "stopbits": 1
+    },
+    "history": {
+        "type": "history",
+        "items": [
+            {
+                "ts": 4510000,
+                "rx": true,
+                "hex": "41 54 49 0D 0A",
+                "ascii": "ATI\\r\\n"
+            },
+            {
+                "ts": 4511000,
+                "rx": false,
+                "hex": "4F 4B 0D 0A",
+                "ascii": "OK\\r\\n"
+            },
+            {
+                "ts": 4515000,
+                "rx": true,
+                "hex": "48 65 6C 6C 6F",
+                "ascii": "Hello"
+            }
+        ]
+    }
+}

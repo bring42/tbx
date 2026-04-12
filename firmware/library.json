@@ -1,0 +1,10 @@
+{
+    "name": "toolbox-base",
+    "version": "1.0.0",
+    "description": "Shared WiFi, web server, and utility headers for ESP32-C3 tools",
+    "frameworks": ["arduino"],
+    "platforms": ["espressif32"],
+    "build": {
+        "includeDir": "."
+    }
+}

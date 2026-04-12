@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toolbox Base — Flash</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; color: #e0e0e0; background: #1a1a2e; }
+    h1 { color: #fff; }
+    p { line-height: 1.6; }
+    a { color: #4fc3f7; }
+    esp-web-install-button { display: block; margin: 2rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Toolbox Base</h1>
+  <p>Flash the Serial Tool firmware directly from your browser. Connect your Seeed XIAO ESP32-C3 or ESP32-S3 via USB and click the button below.</p>
+  <esp-web-install-button manifest="manifest.json">
+    <button slot="activate">Flash Serial Tool</button>
+  </esp-web-install-button>
+  <p><small>Powered by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>. Requires Chrome or Edge.</small></p>
+</body>
+</html>

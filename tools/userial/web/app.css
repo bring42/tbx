@@ -1,0 +1,61 @@
+/* RS-232 Serial Tool — specific styles */
+.stat-rx .stat-value { color: var(--success); }
+.stat-tx .stat-value { color: var(--warning); }
+.log-rx { color: var(--success); }
+.log-tx { color: var(--warning); }
+.log-hex { color: var(--primary); }
+.log-ascii { color: var(--text-muted); }
+.log-dir {
+    display: inline-block;
+    width: 24px;
+    font-weight: 600;
+}
+.log-dir.rx { color: var(--success); }
+.log-dir.tx { color: var(--warning); }
+.btn-tx { background: var(--warning); }
+.btn-tx:hover { background: #d97706; }
+
+/* Terminal */
+.terminal {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+.terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.terminal-output .tx-line { color: var(--warning); }
+.terminal-output .rx-line { color: var(--success); }
+.terminal-output .sys-line { color: var(--text-muted); font-style: italic; }
+.terminal-input-row {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: #111;
+}
+.terminal-prompt {
+    padding: 10px 8px 10px 12px;
+    color: var(--primary);
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    font-size: 0.875rem;
+    user-select: none;
+}
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+    font-size: 0.875rem;
+    padding: 10px 12px 10px 0;
+    outline: none;
+}

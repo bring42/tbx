@@ -1,0 +1,76 @@
+{
+    "status": {
+        "type": "status",
+        "uptime": 1234,
+        "heap": 158400,
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "scanning": false
+    },
+    "settings": {
+        "type": "settings",
+        "ssid": "WiFiScanner",
+        "interval": 10
+    },
+    "scan": {
+        "type": "scan",
+        "count": 8,
+        "networks": [
+            {
+                "ssid": "HomeNetwork-5G",
+                "rssi": -42,
+                "channel": 36,
+                "encryption": "WPA2",
+                "bssid": "A0:B1:C2:D3:E4:F5"
+            },
+            {
+                "ssid": "OfficeWiFi",
+                "rssi": -55,
+                "channel": 6,
+                "encryption": "WPA/WPA2",
+                "bssid": "B1:C2:D3:E4:F5:A0"
+            },
+            {
+                "ssid": "CoffeeShop_Free",
+                "rssi": -63,
+                "channel": 1,
+                "encryption": "Open",
+                "bssid": "C2:D3:E4:F5:A0:B1"
+            },
+            {
+                "ssid": "Neighbor_2.4G",
+                "rssi": -71,
+                "channel": 11,
+                "encryption": "WPA2",
+                "bssid": "D3:E4:F5:A0:B1:C2"
+            },
+            {
+                "ssid": "",
+                "rssi": -74,
+                "channel": 3,
+                "encryption": "WPA2",
+                "bssid": "E4:F5:A0:B1:C2:D3"
+            },
+            {
+                "ssid": "IoT-Network",
+                "rssi": -78,
+                "channel": 9,
+                "encryption": "WPA3",
+                "bssid": "F5:A0:B1:C2:D3:E4"
+            },
+            {
+                "ssid": "DIRECT-printer",
+                "rssi": -82,
+                "channel": 6,
+                "encryption": "WPA2",
+                "bssid": "A1:B2:C3:D4:E5:F6"
+            },
+            {
+                "ssid": "OldRouter",
+                "rssi": -88,
+                "channel": 4,
+                "encryption": "WEP",
+                "bssid": "B2:C3:D4:E5:F6:A1"
+            }
+        ]
+    }
+}

@@ -1,0 +1,252 @@
+<!-- TABS -->
+<div class="tabs">
+    <button class="tab active" data-tab="monitor">Monitor</button>
+    <button class="tab" data-tab="terminal">Terminal</button>
+    <button class="tab" data-tab="send">Send</button>
+</div>
+
+<!-- BODY -->
+<div id="monitor" class="tab-content active">
+    <div class="card">
+        <h2 class="card-title">Statistics</h2>
+        <div class="stats">
+            <div class="stat stat-rx">
+                <div class="stat-value" id="rxBytes">0</div>
+                <div class="stat-label">RX Bytes</div>
+            </div>
+            <div class="stat stat-tx">
+                <div class="stat-value" id="txBytes">0</div>
+                <div class="stat-label">TX Bytes</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="uptime">0s</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="baudRate">9600</div>
+                <div class="stat-label">Baud</div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="card-title">Serial Data</h2>
+        <div class="log" id="log" style="height:300px;">
+            <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn-secondary" onclick="clearLog()" style="flex:1;">Clear Display</button>
+            <button class="btn-secondary" onclick="clearHistory()" style="flex:1;">Clear All</button>
+            <button class="btn-secondary" onclick="downloadLog()" style="flex:1;">Download</button>
+        </div>
+    </div>
+</div>
+
+<div id="terminal" class="tab-content">
+    <div class="card">
+        <h2 class="card-title">Serial Console</h2>
+        <div class="terminal">
+            <div class="terminal-output" id="termOutput"><span class="sys-line">--- Serial Console Ready ---
+</span></div>
+            <div class="terminal-input-row">
+                <span class="terminal-prompt">&gt;</span>
+                <input type="text" class="terminal-input" id="termInput" placeholder="Type command and press Enter..." autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="toggle-row" style="flex:1; min-width:150px;">
+                <span style="font-size:0.8rem;">Local Echo</span>
+                <div class="toggle active" id="localEchoToggle" onclick="toggleLocalEcho()"></div>
+            </div>
+            <div class="toggle-row" style="flex:1; min-width:150px;">
+                <span style="font-size:0.8rem;">Add CR+LF</span>
+                <div class="toggle active" id="termCrlfToggle" onclick="toggleTermCrlf()"></div>
+            </div>
+            <div class="form-group" style="flex:1; min-width:100px; margin:0;">
+                <select id="termLineEnding" style="padding:6px 8px;font-size:0.8rem;">
+                    <option value="crlf">CR+LF (\r\n)</option>
+                    <option value="cr">CR (\r)</option>
+                    <option value="lf">LF (\n)</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+        </div>
+        <div class="quick-btns" style="margin-top:12px;">
+            <button class="btn-secondary" onclick="termSendQuick('ATI')">ATI</button>
+            <button class="btn-secondary" onclick="termSendQuick('AT')">AT</button>
+            <button class="btn-secondary" onclick="termClear()">Clear</button>
+            <button class="btn-secondary" onclick="termSendQuick('')">Send Empty</button>
+        </div>
+    </div>
+</div>
+
+<div id="send" class="tab-content">
+    <div class="card">
+        <h2 class="card-title">Send ASCII</h2>
+        <div class="form-group">
+            <label for="asciiData">Text Data</label>
+            <textarea id="asciiData" placeholder="Enter text to send..."></textarea>
+        </div>
+        <div class="toggle-row" style="margin-bottom:12px;">
+            <span>Append CR+LF</span>
+            <div class="toggle active" id="crlfToggle" onclick="toggleCRLF()"></div>
+        </div>
+        <button class="btn-tx" onclick="sendAscii()">Send ASCII</button>
+        <div class="quick-btns">
+            <button class="btn-secondary" onclick="sendQuickAscii('ATI\\r\\n')">ATI (Modem Info)</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('AT\\r\\n')">AT (Test)</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('Hello RS232\\r\\n')">Hello RS232</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('\\x1B[2J')">Clear Screen (ESC)</button>
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="card-title">Send Hex</h2>
+        <div class="form-group">
+            <label for="hexData">Hex Bytes (space separated)</label>
+            <input type="text" id="hexData" placeholder="48 65 6C 6C 6F">
+        </div>
+        <button onclick="sendHex()">Send Hex</button>
+        <div class="quick-btns">
+            <button class="btn-secondary" onclick="sendQuickHex('02 00 01 03')">STX ... ETX</button>
+            <button class="btn-secondary" onclick="sendQuickHex('1B 5B 32 4A')">ESC[2J (Clear)</button>
+            <button class="btn-secondary" onclick="sendQuickHex('0D 0A')">CR LF</button>
+            <button class="btn-secondary" onclick="sendQuickHex('00 FF')">NUL + 0xFF</button>
+        </div>
+    </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="settings-section">
+    <h3 class="settings-section-title">Display</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label>Format</label>
+            <select id="displayMode" onchange="refreshLogDisplay()">
+                <option value="both" selected>Hex + ASCII</option>
+                <option value="hex">Hex Only</option>
+                <option value="ascii">ASCII Only</option>
+            </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="showTimestamp" checked onchange="refreshLogDisplay()"> Show Timestamp
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="showDirection" checked onchange="refreshLogDisplay()"> Show TX/RX Direction
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="showControlChars" checked onchange="refreshLogDisplay()"> Show Control Chars (\r\n)
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Export</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label>Format</label>
+            <select id="exportFormat">
+                <option value="ascii" selected>ASCII Only</option>
+                <option value="hex">Hex Only</option>
+                <option value="both">Hex + ASCII</option>
+            </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="exportTimestamp"> Include Timestamp
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="exportDirection"> Include TX/RX Direction
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="exportControlChars"> Include Control Chars
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Serial Port</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label>Baud Rate</label>
+            <select id="baudSelect">
+                <option value="300">300</option>
+                <option value="1200">1200</option>
+                <option value="2400">2400</option>
+                <option value="4800">4800</option>
+                <option value="9600" selected>9600</option>
+                <option value="19200">19200</option>
+                <option value="38400">38400</option>
+                <option value="57600">57600</option>
+                <option value="115200">115200</option>
+            </select>
+        </div>
+        <div class="form-row" style="margin-top:12px;">
+            <div class="form-group">
+                <label>Data Bits</label>
+                <select id="databitsSelect">
+                    <option value="7">7</option>
+                    <option value="8" selected>8</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Parity</label>
+                <select id="paritySelect">
+                    <option value="N" selected>None</option>
+                    <option value="E">Even</option>
+                    <option value="O">Odd</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Stop Bits</label>
+                <select id="stopbitsSelect">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="saveSerialConfig()" style="margin-top:12px;">Apply Configuration</button>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Network</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label for="ssid">AP Network Name (SSID)</label>
+            <input type="text" id="ssid" placeholder="SerialTool" maxlength="32">
+        </div>
+        <div class="form-group">
+            <label for="pass">AP Password (min 8 chars)</label>
+            <input type="password" id="pass" placeholder="Leave blank to keep current" maxlength="63" autocomplete="new-password">
+        </div>
+        <button onclick="saveWifi()" style="margin-top:12px;">Save &amp; Restart</button>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Device Info</h3>
+    <div class="setting-item">
+        <p style="margin:0;font-size:0.875rem;color:var(--text-muted);">
+            IP: <span id="deviceIp">192.168.4.1</span><br>
+            MAC: <span id="deviceMac">-</span><br>
+            Free Heap: <span id="freeHeap">-</span>
+        </p>
+    </div>
+</div>
+
+<div class="settings-section">
+    <h3 class="settings-section-title">Pin Configuration</h3>
+    <div class="setting-item">
+        <pre style="margin:0;font-size:0.75rem;color:var(--text-muted);overflow-x:auto;">
+ESP32-C3 (XIAO)     MAX3232          DB9
+────────────────────────────────────────
+GPIO5 (D3/TX) ────> T1IN
+                    T1OUT ─────────> Pin 3 (TX)
+GPIO4 (D2/RX) <──── R1OUT
+                    R1IN <───────── Pin 2 (RX)
+GND ───────────────> GND ──────────> Pin 5 (GND)
+3.3V ──────────────> VCC</pre>
+    </div>
+</div>
