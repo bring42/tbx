@@ -2,6 +2,9 @@
 
 Shared template system for ESP32 embedded tool web UIs. Each tool gets a small web app served directly from the ESP32 — dark theme, WebSocket-based, with WiFi config and OTA updates built in.
 
+<img width="1024" height="591" alt="Screenshot 2026-04-13 at 01 17 13" src="https://github.com/user-attachments/assets/c2de9047-4e91-4987-a128-8d37723153c5" />
+
+
 ```
 platformio_base.ini      ← shared PlatformIO configuration
 firmware/
