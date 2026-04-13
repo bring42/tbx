@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS-232 Serial Tool</title>
+    <title>WiFi Scanner</title>
     <style>
 /* ============================================================
    Toolbox Base — Shared Design System
@@ -393,74 +393,132 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     </style>
     <style>
-/* RS-232 Serial Tool — specific styles */
-.stat-rx .stat-value { color: var(--success); }
-.stat-tx .stat-value { color: var(--warning); }
-.log-rx { color: var(--success); }
-.log-tx { color: var(--warning); }
-.log-hex { color: var(--primary); }
-.log-ascii { color: var(--text-muted); }
-.log-dir {
-    display: inline-block;
-    width: 24px;
-    font-weight: 600;
-}
-.log-dir.rx { color: var(--success); }
-.log-dir.tx { color: var(--warning); }
-.btn-tx { background: var(--warning); }
-.btn-tx:hover { background: #d97706; }
+/* WiFi Scanner Tool — specific styles */
 
-/* Terminal */
-.terminal {
-    background: #000;
+.scan-header-card { margin-bottom: 12px; }
+.scan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.scan-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+.scan-info #networkCount {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 1rem;
+}
+.scan-time {
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+.scan-btn {
+    width: auto;
+    padding: 8px 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.scan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Network cards */
+.network-card {
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    height: 400px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
-.terminal-output {
+.network-card:last-child { margin-bottom: 0; }
+
+.network-signal {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 20px;
+}
+.signal-bar {
+    width: 4px;
+    border-radius: 1px;
+    background: var(--bg-muted);
+    transition: background 0.2s;
+}
+.signal-bar:nth-child(1) { height: 5px; }
+.signal-bar:nth-child(2) { height: 10px; }
+.signal-bar:nth-child(3) { height: 15px; }
+.signal-bar:nth-child(4) { height: 20px; }
+.signal-bar.filled { background: var(--success); }
+.signal-bars-0 .signal-bar.filled { background: var(--error); }
+.signal-bars-1 .signal-bar.filled { background: var(--error); }
+.signal-bars-2 .signal-bar.filled { background: var(--warning); }
+
+.network-info {
     flex: 1;
-    overflow-y: auto;
-    padding: 12px;
+    min-width: 0;
+}
+.network-ssid {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.network-ssid.hidden-ssid {
+    color: var(--text-muted);
+    font-style: italic;
+}
+.network-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.network-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.network-rssi {
+    flex-shrink: 0;
     font-family: 'SF Mono', Monaco, 'Consolas', monospace;
     font-size: 0.8rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-all;
+    color: var(--text-muted);
+    text-align: right;
+    min-width: 52px;
 }
-.terminal-output .tx-line { color: var(--warning); }
-.terminal-output .rx-line { color: var(--success); }
-.terminal-output .sys-line { color: var(--text-muted); font-style: italic; }
-.terminal-input-row {
-    display: flex;
-    border-top: 1px solid var(--border);
-    background: #111;
+
+.lock-icon, .open-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
 }
-.terminal-prompt {
-    padding: 10px 8px 10px 12px;
-    color: var(--primary);
-    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
-    font-size: 0.875rem;
-    user-select: none;
+.lock-icon svg, .open-icon svg {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
 }
-.terminal-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: 'SF Mono', Monaco, 'Consolas', monospace;
-    font-size: 0.875rem;
-    padding: 10px 12px 10px 0;
-    outline: none;
-}
+.lock-icon svg { fill: var(--warning); }
+.open-icon svg { fill: var(--success); }
 
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>RS-232 Serial Tool</h1>
+            <h1>WiFi Scanner</h1>
             <div class="header-status">
                 <span class="status-dot offline" id="statusDot"></span>
                 <span id="statusText">Connecting...</span>
@@ -470,118 +528,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
             </button>
         </div>
 
-        <div class="tabs">
-    <button class="tab active" data-tab="monitor">Monitor</button>
-    <button class="tab" data-tab="terminal">Terminal</button>
-    <button class="tab" data-tab="send">Send</button>
-</div>
+        
 
 
-
-        <div id="monitor" class="tab-content active">
-    <div class="card">
-        <h2 class="card-title">Statistics</h2>
-        <div class="stats">
-            <div class="stat stat-rx">
-                <div class="stat-value" id="rxBytes">0</div>
-                <div class="stat-label">RX Bytes</div>
+        <div id="scanner" class="tab-content active">
+    <div class="card scan-header-card">
+        <div class="scan-header">
+            <div class="scan-info">
+                <span id="networkCount">0</span> networks found
+                <span class="scan-time">Last scan: <span id="lastScanTime">--:--:--</span></span>
             </div>
-            <div class="stat stat-tx">
-                <div class="stat-value" id="txBytes">0</div>
-                <div class="stat-label">TX Bytes</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="uptime">0s</div>
-                <div class="stat-label">Uptime</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="baudRate">9600</div>
-                <div class="stat-label">Baud</div>
-            </div>
+            <button class="scan-btn" id="scanBtn" onclick="triggerScan()">Scan Now</button>
         </div>
     </div>
-    <div class="card">
-        <h2 class="card-title">Serial Data</h2>
-        <div class="log" id="log" style="height:300px;">
-            <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>
-        </div>
-        <div style="margin-top:8px;display:flex;gap:8px;">
-            <button class="btn-secondary" onclick="clearLog()" style="flex:1;">Clear Display</button>
-            <button class="btn-secondary" onclick="clearHistory()" style="flex:1;">Clear All</button>
-            <button class="btn-secondary" onclick="downloadLog()" style="flex:1;">Download</button>
-        </div>
-    </div>
-</div>
-
-<div id="terminal" class="tab-content">
-    <div class="card">
-        <h2 class="card-title">Serial Console</h2>
-        <div class="terminal">
-            <div class="terminal-output" id="termOutput"><span class="sys-line">--- Serial Console Ready ---
-</span></div>
-            <div class="terminal-input-row">
-                <span class="terminal-prompt">&gt;</span>
-                <input type="text" class="terminal-input" id="termInput" placeholder="Type command and press Enter..." autocomplete="off" spellcheck="false">
-            </div>
-        </div>
-        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-            <div class="toggle-row" style="flex:1; min-width:150px;">
-                <span style="font-size:0.8rem;">Local Echo</span>
-                <div class="toggle active" id="localEchoToggle" onclick="toggleLocalEcho()"></div>
-            </div>
-            <div class="toggle-row" style="flex:1; min-width:150px;">
-                <span style="font-size:0.8rem;">Add CR+LF</span>
-                <div class="toggle active" id="termCrlfToggle" onclick="toggleTermCrlf()"></div>
-            </div>
-            <div class="form-group" style="flex:1; min-width:100px; margin:0;">
-                <select id="termLineEnding" style="padding:6px 8px;font-size:0.8rem;">
-                    <option value="crlf">CR+LF (\r\n)</option>
-                    <option value="cr">CR (\r)</option>
-                    <option value="lf">LF (\n)</option>
-                    <option value="none">None</option>
-                </select>
-            </div>
-        </div>
-        <div class="quick-btns" style="margin-top:12px;">
-            <button class="btn-secondary" onclick="termSendQuick('ATI')">ATI</button>
-            <button class="btn-secondary" onclick="termSendQuick('AT')">AT</button>
-            <button class="btn-secondary" onclick="termClear()">Clear</button>
-            <button class="btn-secondary" onclick="termSendQuick('')">Send Empty</button>
-        </div>
-    </div>
-</div>
-
-<div id="send" class="tab-content">
-    <div class="card">
-        <h2 class="card-title">Send ASCII</h2>
-        <div class="form-group">
-            <label for="asciiData">Text Data</label>
-            <textarea id="asciiData" placeholder="Enter text to send..."></textarea>
-        </div>
-        <div class="toggle-row" style="margin-bottom:12px;">
-            <span>Append CR+LF</span>
-            <div class="toggle active" id="crlfToggle" onclick="toggleCRLF()"></div>
-        </div>
-        <button class="btn-tx" onclick="sendAscii()">Send ASCII</button>
-        <div class="quick-btns">
-            <button class="btn-secondary" onclick="sendQuickAscii('ATI\\r\\n')">ATI (Modem Info)</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('AT\\r\\n')">AT (Test)</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('Hello RS232\\r\\n')">Hello RS232</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('\\x1B[2J')">Clear Screen (ESC)</button>
-        </div>
-    </div>
-    <div class="card">
-        <h2 class="card-title">Send Hex</h2>
-        <div class="form-group">
-            <label for="hexData">Hex Bytes (space separated)</label>
-            <input type="text" id="hexData" placeholder="48 65 6C 6C 6F">
-        </div>
-        <button onclick="sendHex()">Send Hex</button>
-        <div class="quick-btns">
-            <button class="btn-secondary" onclick="sendQuickHex('02 00 01 03')">STX ... ETX</button>
-            <button class="btn-secondary" onclick="sendQuickHex('1B 5B 32 4A')">ESC[2J (Clear)</button>
-            <button class="btn-secondary" onclick="sendQuickHex('0D 0A')">CR LF</button>
-            <button class="btn-secondary" onclick="sendQuickHex('00 FF')">NUL + 0xFF</button>
+    <div id="networkList">
+        <div class="card" style="text-align:center;color:var(--text-muted);padding:40px 16px;">
+            Waiting for scan results...
         </div>
     </div>
 </div>
@@ -597,112 +559,40 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
                 </div>
                 <div class="modal-body">
                     <div class="settings-section">
-    <h3 class="settings-section-title">Display</h3>
+    <h3 class="settings-section-title">Scanner</h3>
     <div class="setting-item">
         <div class="form-group">
-            <label>Format</label>
-            <select id="displayMode" onchange="refreshLogDisplay()">
-                <option value="both" selected>Hex + ASCII</option>
-                <option value="hex">Hex Only</option>
-                <option value="ascii">ASCII Only</option>
-            </select>
+            <label for="scanInterval">Auto-scan Interval (seconds)</label>
+            <input type="number" id="scanInterval" min="5" max="300" value="10">
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="showTimestamp" checked onchange="refreshLogDisplay()"> Show Timestamp
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="showDirection" checked onchange="refreshLogDisplay()"> Show TX/RX Direction
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="showControlChars" checked onchange="refreshLogDisplay()"> Show Control Chars (\r\n)
-            </label>
-        </div>
+        <button onclick="saveSettings()" style="margin-top:12px;">Save Settings</button>
     </div>
 </div>
 
 <div class="settings-section">
-    <h3 class="settings-section-title">Export</h3>
+    <h3 class="settings-section-title">Network</h3>
     <div class="setting-item">
         <div class="form-group">
-            <label>Format</label>
-            <select id="exportFormat">
-                <option value="ascii" selected>ASCII Only</option>
-                <option value="hex">Hex Only</option>
-                <option value="both">Hex + ASCII</option>
-            </select>
+            <label for="ssid">AP Network Name (SSID)</label>
+            <input type="text" id="ssid" placeholder="WiFiScanner" maxlength="32">
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="exportTimestamp"> Include Timestamp
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="exportDirection"> Include TX/RX Direction
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="exportControlChars"> Include Control Chars
-            </label>
+        <div class="form-group">
+            <label for="pass">AP Password (min 8 chars)</label>
+            <input type="password" id="pass" placeholder="Leave blank to keep current" maxlength="63" autocomplete="new-password">
         </div>
+        <button onclick="saveWifi()" style="margin-top:12px;">Save &amp; Restart</button>
     </div>
 </div>
 
 <div class="settings-section">
-    <h3 class="settings-section-title">Serial Port</h3>
+    <h3 class="settings-section-title">Device Info</h3>
     <div class="setting-item">
-        <div class="form-group">
-            <label>Baud Rate</label>
-            <select id="baudSelect">
-                <option value="300">300</option>
-                <option value="1200">1200</option>
-                <option value="2400">2400</option>
-                <option value="4800">4800</option>
-                <option value="9600" selected>9600</option>
-                <option value="19200">19200</option>
-                <option value="38400">38400</option>
-                <option value="57600">57600</option>
-                <option value="115200">115200</option>
-            </select>
-        </div>
-        <div class="form-row" style="margin-top:12px;">
-            <div class="form-group">
-                <label>Data Bits</label>
-                <select id="databitsSelect">
-                    <option value="7">7</option>
-                    <option value="8" selected>8</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Parity</label>
-                <select id="paritySelect">
-                    <option value="N" selected>None</option>
-                    <option value="E">Even</option>
-                    <option value="O">Odd</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Stop Bits</label>
-                <select id="stopbitsSelect">
-                    <option value="1" selected>1</option>
-                    <option value="2">2</option>
-                </select>
-            </div>
-        </div>
-        <button onclick="saveSerialConfig()" style="margin-top:12px;">Apply Configuration</button>
-    </div>
-</div>
-
-<div class="settings-section">
-    <h3 class="settings-section-title">Pin Configuration</h3>
-    <div class="setting-item">
-        <pre style="margin:0;font-size:0.75rem;color:var(--text-muted);overflow-x:auto;">
-ESP32-C3 (XIAO)     MAX3232          DB9
-────────────────────────────────────────
-GPIO5 (D3/TX) ────> T1IN
-                    T1OUT ─────────> Pin 3 (TX)
-GPIO4 (D2/RX) <──── R1OUT
-                    R1IN <───────── Pin 2 (RX)
-GND ───────────────> GND ──────────> Pin 5 (GND)
-3.3V ──────────────> VCC</pre>
+        <p style="margin:0;font-size:0.875rem;color:var(--text-muted);">
+            IP: <span id="deviceIp">192.168.4.1</span><br>
+            MAC: <span id="deviceMac">-</span><br>
+            Free Heap: <span id="freeHeap">-</span><br>
+            Uptime: <span id="uptime">-</span>
+        </p>
     </div>
 </div>
 
@@ -1085,25 +975,24 @@ if (document.readyState === 'loading') {
     </script>
     <script>
 /* ============================================================
-   RS-232 Serial Tool — App JS
+   WiFi Scanner Tool — App JS
    Tool-specific WebSocket handlers, UI logic
    ============================================================ */
 
-const log = document.getElementById('log');
-let logEntries = [];
-let appendCrlf = true;
-let localEcho = true;
-let termAddCrlf = true;
-let termHistory = [];
-let termHistoryIdx = -1;
-let termCurrentInput = '';
+let networks = [];
+let scanInterval = 10;
+
+// --- SVG icons -----------------------------------------------------------
+
+const LOCK_SVG = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>';
+const OPEN_SVG = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>';
 
 // --- base.js hooks -------------------------------------------------------
 
 function onConnected() {
     wsSend({ cmd: 'status' });
     wsSend({ cmd: 'settings' });
-    wsSend({ cmd: 'getHistory' });
+    wsSend({ cmd: 'scan' });
 }
 
 function onSettingsOpen() {
@@ -1112,309 +1001,120 @@ function onSettingsOpen() {
 
 function onMessage(data) {
     if (data.type === 'status') {
-        document.getElementById('rxBytes').textContent = data.rxBytes || 0;
-        document.getElementById('txBytes').textContent = data.txBytes || 0;
         document.getElementById('uptime').textContent = formatUptime(data.uptime);
-        document.getElementById('baudRate').textContent = data.baud || 9600;
-    } else if (data.type === 'rx') {
-        addLogEntry({ ...data, dir: 'RX' });
-        document.getElementById('rxBytes').textContent = data.total || 0;
-        terminalAppend(data.ascii || '', 'rx-line');
-    } else if (data.type === 'sent') {
-        addLogEntry({ ...data, dir: 'TX' });
-        document.getElementById('txBytes').textContent = data.total || 0;
-        // Terminal TX shown via local echo, skip here
-    } else if (data.type === 'history') {
-        loadHistory(data);
+        document.getElementById('freeHeap').textContent = (data.heap || 0) + ' bytes';
+        document.getElementById('deviceMac').textContent = data.mac || '-';
+        if (data.scanning) {
+            document.getElementById('scanBtn').disabled = true;
+            document.getElementById('scanBtn').textContent = 'Scanning...';
+        } else {
+            document.getElementById('scanBtn').disabled = false;
+            document.getElementById('scanBtn').textContent = 'Scan Now';
+        }
+    } else if (data.type === 'scan') {
+        networks = data.networks || [];
+        document.getElementById('networkCount').textContent = data.count || networks.length;
+        document.getElementById('lastScanTime').textContent = new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        document.getElementById('scanBtn').disabled = false;
+        document.getElementById('scanBtn').textContent = 'Scan Now';
+        renderNetworks();
     } else if (data.type === 'settings') {
-        document.getElementById('baudSelect').value = data.baud || 9600;
-        document.getElementById('databitsSelect').value = data.databits || 8;
-        document.getElementById('paritySelect').value = data.parity || 'N';
-        document.getElementById('stopbitsSelect').value = data.stopbits || 1;
-    } else if (data.type === 'serialConfig') {
-        document.getElementById('baudRate').textContent = data.baud;
-        showToast('Serial configured: ' + data.baud + ' ' + data.config, 'success');
-    } else if (data.type === 'cleared') {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
-        logEntries = [];
-        document.getElementById('rxBytes').textContent = '0';
-        document.getElementById('txBytes').textContent = '0';
+        document.getElementById('ssid').value = data.ssid || '';
+        document.getElementById('pass').value = '';
+        scanInterval = data.interval || 10;
+        document.getElementById('scanInterval').value = scanInterval;
     } else if (data.type === 'error') {
         showToast(data.msg || 'Error', 'error');
+        document.getElementById('scanBtn').disabled = false;
+        document.getElementById('scanBtn').textContent = 'Scan Now';
     }
 }
 
-// --- Log -----------------------------------------------------------------
+// --- Signal helpers ------------------------------------------------------
 
-function addLogEntry(data, prepend) {
-    if (prepend === undefined) prepend = true;
-    if (logEntries.length === 0) log.innerHTML = '';
+function rssiToBars(rssi) {
+    if (rssi > -50) return 4;
+    if (rssi > -60) return 3;
+    if (rssi > -70) return 2;
+    if (rssi > -80) return 1;
+    return 0;
+}
 
-    const time = data.timeStr || formatTimestamp(data.ts);
-    const isRx = data.dir === 'RX';
-    const showTime = document.getElementById('showTimestamp').checked;
-    const showDir = document.getElementById('showDirection').checked;
-    const showCtrl = document.getElementById('showControlChars').checked;
-    const mode = document.getElementById('displayMode').value;
+function renderSignalBars(bars) {
+    let html = '<div class="network-signal signal-bars-' + bars + '">';
+    for (let i = 1; i <= 4; i++) {
+        html += '<div class="signal-bar' + (i <= bars ? ' filled' : '') + '"></div>';
+    }
+    html += '</div>';
+    return html;
+}
 
-    let ascii = data.ascii || '';
-    if (!showCtrl) ascii = ascii.replace(/\\r/g, '').replace(/\\n/g, '').replace(/\\t/g, '');
+// --- Render networks -----------------------------------------------------
+
+function renderNetworks() {
+    const container = document.getElementById('networkList');
+
+    if (networks.length === 0) {
+        container.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);padding:40px 16px;">No networks found</div>';
+        return;
+    }
 
     let html = '';
-    if (showTime) html += '<span class="log-time">' + time + '</span>';
-    if (showDir) html += '<span class="log-dir ' + (isRx ? 'rx' : 'tx') + '">' + data.dir + '</span> ';
-    if (mode === 'both' || mode === 'hex') {
-        html += '<span class="log-hex">' + (data.hex || '') + '</span>';
-    }
-    if (mode === 'both') {
-        html += ' <span class="log-ascii">[' + ascii + ']</span>';
-    } else if (mode === 'ascii') {
-        html += '<span class="log-ascii">' + ascii + '</span>';
-    }
+    networks.forEach(net => {
+        const bars = rssiToBars(net.rssi);
+        const ssid = net.ssid ? escapeHtml(net.ssid) : '';
+        const isHidden = !net.ssid || net.ssid.length === 0;
+        const isOpen = net.encryption === 'Open';
+        const secIcon = isOpen
+            ? '<span class="open-icon">' + OPEN_SVG + '</span>'
+            : '<span class="lock-icon">' + LOCK_SVG + '</span>';
 
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = html;
+        html += '<div class="network-card">';
+        html += renderSignalBars(bars);
+        html += '<div class="network-info">';
+        html += '<div class="network-ssid' + (isHidden ? ' hidden-ssid' : '') + '">' + (isHidden ? '[Hidden]' : ssid) + '</div>';
+        html += '<div class="network-details">';
+        html += '<span class="network-detail">' + secIcon + ' ' + escapeHtml(net.encryption) + '</span>';
+        html += '<span class="network-detail">Ch ' + net.channel + '</span>';
+        html += '<span class="network-detail">' + escapeHtml(net.bssid) + '</span>';
+        html += '</div>';
+        html += '</div>';
+        html += '<div class="network-rssi">' + net.rssi + ' dBm</div>';
+        html += '</div>';
+    });
 
-    if (prepend) {
-        log.insertBefore(entry, log.firstChild);
-        logEntries.unshift(data);
-        if (logEntries.length > 200) {
-            logEntries.pop();
-            if (log.lastChild) log.removeChild(log.lastChild);
-        }
-    } else {
-        log.appendChild(entry);
-        logEntries.push(data);
-    }
+    container.innerHTML = html;
 }
 
-function loadHistory(data) {
-    logEntries = [];
-    log.innerHTML = '';
-    if (!data.items || data.items.length === 0) {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
+// --- Actions -------------------------------------------------------------
+
+function triggerScan() {
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('scanBtn').textContent = 'Scanning...';
+    wsSend({ cmd: 'scan' });
+}
+
+function saveSettings() {
+    const interval = parseInt(document.getElementById('scanInterval').value);
+    if (isNaN(interval) || interval < 5 || interval > 300) {
+        showToast('Interval must be 5-300 seconds', 'error');
         return;
     }
-    data.items.forEach(item => {
-        item.dir = item.rx ? 'RX' : 'TX';
-        item.timeStr = formatTimestamp(item.ts);
-        addLogEntry(item, false);
-    });
+    wsSend({ cmd: 'savesettings', interval: interval });
+    showToast('Settings saved', 'success');
 }
 
-function clearLog() {
-    logEntries = [];
-    log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
+function saveWifi() {
+    const ssid = document.getElementById('ssid').value.trim();
+    const pass = document.getElementById('pass').value;
+    if (ssid.length < 1 || ssid.length > 32) { showToast('SSID must be 1-32 chars', 'error'); return; }
+    if (pass.length > 0 && pass.length < 8) { showToast('Password must be 8+ chars or empty', 'error'); return; }
+    wsSend({ cmd: 'savewifi', ssid: ssid, pass: pass });
+    showToast('Settings saved! Restarting...', 'success');
+    setTimeout(() => location.reload(), 3000);
 }
-
-function refreshLogDisplay() {
-    const entries = [...logEntries];
-    logEntries = [];
-    log.innerHTML = '';
-    if (entries.length === 0) {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
-    } else {
-        entries.forEach(e => addLogEntry(e, false));
-    }
-}
-
-function clearHistory() {
-    if (confirm('Clear all history and statistics?')) {
-        wsSend({ cmd: 'clearHistory' });
-    }
-}
-
-// --- Download / Export ---------------------------------------------------
-
-function downloadLog() {
-    if (logEntries.length === 0) {
-        showToast('No data to download', 'error');
-        return;
-    }
-    const fmt = document.getElementById('exportFormat').value;
-    const incTime = document.getElementById('exportTimestamp').checked;
-    const incDir = document.getElementById('exportDirection').checked;
-    const incCtrl = document.getElementById('exportControlChars').checked;
-
-    let text = 'RS-232 Serial Log - ' + new Date().toISOString() + '\n';
-    text += '='.repeat(60) + '\n\n';
-
-    logEntries.forEach(entry => {
-        const time = entry.timeStr || formatTimestamp(entry.ts);
-        const dir = entry.dir || (entry.rx ? 'RX' : 'TX');
-        let ascii = entry.ascii || '';
-        if (!incCtrl) ascii = ascii.replace(/\\r/g, '').replace(/\\n/g, '').replace(/\\t/g, '');
-        let line = '';
-        if (incTime) line += '[' + time + '] ';
-        if (incDir) line += dir + ' ';
-        if (fmt === 'hex') {
-            line += (entry.hex || '');
-        } else if (fmt === 'ascii') {
-            line += ascii;
-        } else {
-            line += 'HEX: ' + (entry.hex || '') + ' ASCII: ' + ascii;
-        }
-        text += line + '\n';
-    });
-
-    const blob = new Blob([text], { type: 'text/plain' });
-    downloadBlob(blob, 'serial_log_' + new Date().toISOString().replace(/[:.]/g, '-') + '.txt');
-    showToast('Log downloaded', 'success');
-}
-
-// --- Send ----------------------------------------------------------------
-
-function toggleCRLF() {
-    toggleSwitch('crlfToggle', (active) => { appendCrlf = active; });
-}
-
-function sendAscii() {
-    const data = document.getElementById('asciiData').value;
-    if (!data) { showToast('Enter text to send', 'error'); return; }
-    wsSend({ cmd: 'sendAscii', data: data, crlf: appendCrlf });
-}
-
-function sendQuickAscii(text) {
-    const processed = text
-        .replace(/\\r/g, '\r')
-        .replace(/\\n/g, '\n')
-        .replace(/\\x([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
-    wsSend({ cmd: 'sendAscii', data: processed, crlf: false });
-}
-
-function sendHex() {
-    const data = document.getElementById('hexData').value.trim();
-    if (!data) { showToast('Enter hex bytes to send', 'error'); return; }
-    if (!/^[0-9a-fA-F\s,]+$/.test(data)) { showToast('Invalid hex format', 'error'); return; }
-    wsSend({ cmd: 'sendHex', data: data });
-}
-
-function sendQuickHex(hex) {
-    wsSend({ cmd: 'sendHex', data: hex });
-}
-
-// --- Terminal ------------------------------------------------------------
-
-function toggleLocalEcho() {
-    toggleSwitch('localEchoToggle', (active) => { localEcho = active; });
-}
-
-function toggleTermCrlf() {
-    toggleSwitch('termCrlfToggle', (active) => {
-        termAddCrlf = active;
-        document.getElementById('termLineEnding').value = active ? 'crlf' : 'none';
-    });
-}
-
-function getLineEnding() {
-    const sel = document.getElementById('termLineEnding').value;
-    switch (sel) {
-        case 'crlf': return '\r\n';
-        case 'cr': return '\r';
-        case 'lf': return '\n';
-        default: return '';
-    }
-}
-
-function terminalAppend(text, className) {
-    const output = document.getElementById('termOutput');
-    const span = document.createElement('span');
-    span.className = className || 'rx-line';
-    // Clean control chars for display, keep newlines
-    span.textContent = text.replace(/\r/g, '').replace(/\\r/g, '');
-    output.appendChild(span);
-    output.scrollTop = output.scrollHeight;
-}
-
-function termSend(text) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showToast('Not connected', 'error');
-        return;
-    }
-    const lineEnding = getLineEnding();
-    const fullText = text + lineEnding;
-
-    // Local echo
-    if (localEcho) {
-        terminalAppend(text + '\n', 'tx-line');
-    }
-
-    // Command history
-    if (text && (termHistory.length === 0 || termHistory[termHistory.length - 1] !== text)) {
-        termHistory.push(text);
-        if (termHistory.length > 50) termHistory.shift();
-    }
-    termHistoryIdx = -1;
-
-    wsSend({ cmd: 'sendAscii', data: fullText, crlf: false });
-}
-
-function termSendQuick(text) {
-    const input = document.getElementById('termInput');
-    input.value = text;
-    termSend(text);
-    input.value = '';
-    input.focus();
-}
-
-function termClear() {
-    document.getElementById('termOutput').innerHTML = '<span class="sys-line">--- Cleared ---\n</span>';
-}
-
-// --- Terminal input key handling -----------------------------------------
-
-document.getElementById('termInput').addEventListener('keydown', (e) => {
-    const input = e.target;
-    if (e.key === 'Enter') {
-        termSend(input.value);
-        input.value = '';
-        e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-        if (termHistory.length > 0) {
-            if (termHistoryIdx === -1) {
-                termCurrentInput = input.value;
-                termHistoryIdx = termHistory.length - 1;
-            } else if (termHistoryIdx > 0) {
-                termHistoryIdx--;
-            }
-            input.value = termHistory[termHistoryIdx];
-            setTimeout(() => input.selectionStart = input.selectionEnd = input.value.length, 0);
-        }
-        e.preventDefault();
-    } else if (e.key === 'ArrowDown') {
-        if (termHistoryIdx !== -1) {
-            if (termHistoryIdx < termHistory.length - 1) {
-                termHistoryIdx++;
-                input.value = termHistory[termHistoryIdx];
-            } else {
-                termHistoryIdx = -1;
-                input.value = termCurrentInput;
-            }
-            setTimeout(() => input.selectionStart = input.selectionEnd = input.value.length, 0);
-        }
-        e.preventDefault();
-    }
-});
-
-document.getElementById('termLineEnding').addEventListener('change', (e) => {
-    termAddCrlf = e.target.value !== 'none';
-    document.getElementById('termCrlfToggle').classList.toggle('active', termAddCrlf);
-});
-
-// --- Settings ------------------------------------------------------------
-
-function saveSerialConfig() {
-    wsSend({
-        cmd: 'setSerial',
-        baud: parseInt(document.getElementById('baudSelect').value),
-        databits: parseInt(document.getElementById('databitsSelect').value),
-        parity: document.getElementById('paritySelect').value,
-        stopbits: parseInt(document.getElementById('stopbitsSelect').value)
-    });
-}
-
-
 
     </script>
 </body>

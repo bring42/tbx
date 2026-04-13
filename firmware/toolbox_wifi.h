@@ -17,6 +17,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
+#include <ArduinoJson.h>
 
 // WiFi modes
 #define TB_WIFI_AP_ONLY   0
@@ -235,8 +236,7 @@ inline void tbWifiSave(const char* prefsNS, const char* ssid, const char* pass,
  * Run a WiFi scan and populate a JSON doc with results.
  * Call from your "wifiscan" WS handler.
  */
-template <typename TDoc>
-inline void tbWifiScanJson(TDoc& doc) {
+inline void tbWifiScanJson(JsonDocument& doc) {
     int n = WiFi.scanNetworks();
     doc["type"] = "wifiscan";
     JsonArray arr = doc["networks"].to<JsonArray>();
