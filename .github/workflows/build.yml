@@ -8,7 +8,21 @@ on:
     branches: [main]
 
 jobs:
+  test-web:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tool: [userial, wifiscan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Web build ${{ matrix.tool }}
+        run: python build/build_web.py --tool-dir tools/${{ matrix.tool }}
+
   build:
+    needs: test-web
     runs-on: ubuntu-latest
     strategy:
       matrix:
