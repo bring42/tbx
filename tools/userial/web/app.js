@@ -238,7 +238,7 @@ function sendAscii() {
 }
 
 function sendQuickAscii(text) {
-    wsSend({ cmd: 'sendAscii', port: selectedPort('asciiPortSelect'), data: processEscapes(text), crlf: appendCrlf });
+    wsSend({ cmd: 'sendAscii', port: selectedPort('asciiPortSelect'), data: processEscapes(text), crlf: false });
 }
 
 function sendHex() {

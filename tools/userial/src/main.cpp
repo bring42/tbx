@@ -333,6 +333,9 @@ void sendError(AsyncWebSocketClient* client, const char* msg) {
     tbWsReply(client, resp);
 }
 
+// Parse a hex payload made of 1-2 digit hex bytes separated by spaces/commas.
+// Returns the parsed byte count on success, or -1 if the payload is malformed
+// or exceeds the output buffer.
 int parseHexPayload(const char* input, uint8_t* out, size_t maxLen) {
     if (!input) return 0;
 
