@@ -25,7 +25,6 @@ import hashlib
 import argparse
 import sys
 import os
-import re
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
@@ -43,6 +42,7 @@ _tool_dir = None
 _assembled_html = ""
 _last_hash = ""
 _mock_data = {}
+_ws_url_rewrite = None
 
 
 def _preview_ascii(data: bytes) -> str:
@@ -65,11 +65,26 @@ def _preview_hex(data: bytes) -> str:
     return " ".join(f"{value:02X}" for value in data[:32])
 
 
-def _parse_hex_bytes(raw: str) -> bytes:
-    tokens = re.findall(r"[0-9A-Fa-f]{1,2}", raw or "")
-    if not tokens:
-        return b""
-    return bytes(int(token, 16) for token in tokens)
+def _parse_hex_bytes(raw: str):
+    raw = raw or ""
+    out = bytearray()
+    i = 0
+    while i < len(raw):
+        ch = raw[i]
+        if ch in " ,\t\r\n":
+            i += 1
+            continue
+        if ch not in "0123456789abcdefABCDEF":
+            return None
+        token = ch
+        i += 1
+        if i < len(raw) and raw[i] in "0123456789abcdefABCDEF":
+            token += raw[i]
+            i += 1
+        if i < len(raw) and raw[i] not in " ,\t\r\n":
+            return None
+        out.append(int(token, 16))
+    return bytes(out)
 
 
 def _normalize_mock_state():
@@ -167,6 +182,11 @@ def _rebuild_if_needed():
     if current != _last_hash:
         _last_hash = current
         _assembled_html = assemble(_base_dir, _tool_dir)
+        if _ws_url_rewrite:
+            _assembled_html = _assembled_html.replace(
+                "ws://' + location.host + '/ws",
+                _ws_url_rewrite
+            )
         # Inject auto-reload snippet
         reload_script = """
 <script>
@@ -306,6 +326,8 @@ async def _mock_ws_handler(websocket):
             elif cmd in ("send", "sendAscii"):
                 data = msg.get("data", "")
                 port = _port_state(msg.get("port", "A"))
+                if msg.get("crlf"):
+                    data += "\r\n"
                 payload = data.encode("utf-8", "ignore")
                 port["txBytes"] += len(payload)
                 _mock_data["status"]["txBytes"] = sum(item["txBytes"] for item in _mock_data["status"]["ports"])
@@ -329,6 +351,9 @@ async def _mock_ws_handler(websocket):
             elif cmd == "sendHex":
                 port = _port_state(msg.get("port", "A"))
                 payload = _parse_hex_bytes(msg.get("data", ""))
+                if payload is None:
+                    await websocket.send(json.dumps({"type": "error", "msg": "Invalid hex payload"}))
+                    continue
                 port["txBytes"] += len(payload)
                 _mock_data["status"]["txBytes"] = sum(item["txBytes"] for item in _mock_data["status"]["ports"])
                 _append_history({
@@ -406,7 +431,7 @@ async def _run_ws_server(host, port):
 # ---------------------------------------------------------------------------
 
 def main():
-    global _base_dir, _tool_dir
+    global _base_dir, _tool_dir, _ws_url_rewrite
 
     parser = argparse.ArgumentParser(description="Toolbox Base dev server")
     parser.add_argument("--base-dir", type=Path, default=Path(__file__).resolve().parent.parent,
@@ -420,6 +445,8 @@ def main():
     _base_dir = args.base_dir.resolve()
     _tool_dir = args.tool_dir.resolve()
     http_port = args.port
+    ws_port = args.ws_port or (http_port + 1)
+    _ws_url_rewrite = f"ws://' + location.hostname + ':{ws_port}/ws"
 
     if not (_base_dir / "web" / "template.html").exists():
         print(f"Error: template.html not found in {_base_dir / 'web'}")
@@ -430,18 +457,6 @@ def main():
 
     _load_mock_data()
     _rebuild_if_needed()
-
-    # The trick: we serve HTTP and WS on the same port by using a combined approach
-    # HTTP serves the page, WS runs on the same port with /ws path
-    # We'll use separate ports for simplicity: HTTP on --port, WS on --port+1
-    ws_port = args.ws_port or (http_port + 1)
-
-    # Patch the assembled HTML to point WS to the dev server port
-    global _assembled_html
-    _assembled_html = _assembled_html.replace(
-        "ws://' + location.host + '/ws",
-        f"ws://' + location.hostname + ':{ws_port}/ws"
-    )
 
     # Start HTTP server in a thread
     httpd = HTTPServer(("0.0.0.0", http_port), DevHandler)

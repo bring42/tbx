@@ -154,7 +154,7 @@ function loadHistory(data) {
         clearLog();
         return;
     }
-    data.items.forEach(item => logEntries.push(normalizeEntry(item)));
+    data.items.slice().reverse().forEach(item => logEntries.push(normalizeEntry(item)));
     refreshLogDisplay();
 }
 
