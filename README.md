@@ -22,7 +22,7 @@ build/
   build_web.py           ← assembles template + tool files → gzip C header
   dev_server.py          ← HTTP + mock WebSocket dev server, auto-reload
 tools/
-  userial/               ← RS-232 serial monitor/sender
+  userial/               ← Dual-UART serial monitor/injector/passthrough bridge
   wifiscan/              ← WiFi network scanner
 ```
 

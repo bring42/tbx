@@ -25,6 +25,7 @@ import hashlib
 import argparse
 import sys
 import os
+import re
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
@@ -42,6 +43,98 @@ _tool_dir = None
 _assembled_html = ""
 _last_hash = ""
 _mock_data = {}
+
+
+def _preview_ascii(data: bytes) -> str:
+    out = []
+    for value in data[:32]:
+        if 32 <= value < 127:
+            out.append(chr(value))
+        elif value == 13:
+            out.append("\\r")
+        elif value == 10:
+            out.append("\\n")
+        elif value == 9:
+            out.append("\\t")
+        else:
+            out.append(".")
+    return "".join(out)
+
+
+def _preview_hex(data: bytes) -> str:
+    return " ".join(f"{value:02X}" for value in data[:32])
+
+
+def _parse_hex_bytes(raw: str) -> bytes:
+    tokens = re.findall(r"[0-9A-Fa-f]{1,2}", raw or "")
+    if not tokens:
+        return b""
+    return bytes(int(token, 16) for token in tokens)
+
+
+def _normalize_mock_state():
+    status = _mock_data.setdefault("status", {"type": "status"})
+    settings = _mock_data.setdefault("settings", {"type": "settings"})
+    history = _mock_data.setdefault("history", {"type": "history", "items": []})
+
+    status.setdefault("rxBytes", 0)
+    status.setdefault("txBytes", 0)
+    status.setdefault("uptime", 0)
+    status.setdefault("heap", 180000)
+    status.setdefault("baud", 9600)
+    status.setdefault("databits", 8)
+    status.setdefault("parity", "N")
+    status.setdefault("stopbits", 1)
+    status.setdefault("config", "8N1")
+    status.setdefault("passthroughMode", "both")
+    status.setdefault("wifiMode", 0)
+    status.setdefault("mdnsHost", "tool")
+    status.setdefault("mdnsActive", True)
+    status.setdefault("apIP", "192.168.4.1")
+
+    ports = status.setdefault("ports", [
+        {"id": "A", "label": "Channel A", "rxPin": 4, "txPin": 5, "rxBytes": 0, "txBytes": 0},
+        {"id": "B", "label": "Channel B", "rxPin": 6, "txPin": 7, "rxBytes": 0, "txBytes": 0},
+    ])
+    for port in ports:
+        port.setdefault("label", f"Channel {port.get('id', 'A')}")
+        port.setdefault("rxPin", 4 if port.get("id") == "A" else 6)
+        port.setdefault("txPin", 5 if port.get("id") == "A" else 7)
+        port.setdefault("rxBytes", 0)
+        port.setdefault("txBytes", 0)
+
+    settings.update({
+        "type": "settings",
+        "ssid": settings.get("ssid", "ToolAP"),
+        "apHasPass": settings.get("apHasPass", True),
+        "wifiMode": settings.get("wifiMode", status["wifiMode"]),
+        "staSSID": settings.get("staSSID", ""),
+        "staHasPass": settings.get("staHasPass", False),
+        "mdnsHost": settings.get("mdnsHost", status["mdnsHost"]),
+        "baud": settings.get("baud", status["baud"]),
+        "databits": settings.get("databits", status["databits"]),
+        "parity": settings.get("parity", status["parity"]),
+        "stopbits": settings.get("stopbits", status["stopbits"]),
+        "config": settings.get("config", status["config"]),
+        "passthroughMode": settings.get("passthroughMode", status["passthroughMode"]),
+        "ports": ports,
+    })
+    history.setdefault("type", "history")
+    history.setdefault("items", [])
+
+
+def _port_state(port_id: str):
+    port_id = (port_id or "A").upper()
+    for port in _mock_data["status"]["ports"]:
+        if port["id"] == port_id:
+            return port
+    return _mock_data["status"]["ports"][0]
+
+
+def _append_history(entry):
+    items = _mock_data.setdefault("history", {"type": "history", "items": []})["items"]
+    items.append(entry)
+    del items[:-80]
 
 # ---------------------------------------------------------------------------
 # File watching
@@ -182,6 +275,7 @@ def _load_mock_data():
                 "items": []
             }
         }
+    _normalize_mock_state()
 
 
 async def _mock_ws_handler(websocket):
@@ -211,24 +305,83 @@ async def _mock_ws_handler(websocket):
                 }))
             elif cmd in ("send", "sendAscii"):
                 data = msg.get("data", "")
+                port = _port_state(msg.get("port", "A"))
+                payload = data.encode("utf-8", "ignore")
+                port["txBytes"] += len(payload)
+                _mock_data["status"]["txBytes"] = sum(item["txBytes"] for item in _mock_data["status"]["ports"])
+                _append_history({
+                    "ts": int(time.time() * 1000),
+                    "port": port["id"],
+                    "dir": "TX",
+                    "hex": _preview_hex(payload),
+                    "ascii": _preview_ascii(payload),
+                })
                 await websocket.send(json.dumps({
                     "type": "sent",
-                    "len": len(data),
-                    "hex": " ".join(f"{ord(c):02X}" for c in data[:32]),
-                    "ascii": data[:32],
-                    "total": 256 + len(data)
+                    "port": port["id"],
+                    "len": len(payload),
+                    "hex": _preview_hex(payload),
+                    "ascii": _preview_ascii(payload),
+                    "total": _mock_data["status"]["txBytes"],
+                    "portTxBytes": port["txBytes"],
+                    "ts": int(time.time() * 1000)
                 }))
             elif cmd == "sendHex":
+                port = _port_state(msg.get("port", "A"))
+                payload = _parse_hex_bytes(msg.get("data", ""))
+                port["txBytes"] += len(payload)
+                _mock_data["status"]["txBytes"] = sum(item["txBytes"] for item in _mock_data["status"]["ports"])
+                _append_history({
+                    "ts": int(time.time() * 1000),
+                    "port": port["id"],
+                    "dir": "TX",
+                    "hex": _preview_hex(payload),
+                    "ascii": _preview_ascii(payload),
+                })
                 await websocket.send(json.dumps({
                     "type": "sent",
-                    "len": 4,
-                    "hex": msg.get("data", "00"),
-                    "ascii": "....",
-                    "total": 260
+                    "port": port["id"],
+                    "len": len(payload),
+                    "hex": _preview_hex(payload),
+                    "ascii": _preview_ascii(payload),
+                    "total": _mock_data["status"]["txBytes"],
+                    "portTxBytes": port["txBytes"],
+                    "ts": int(time.time() * 1000)
                 }))
+            elif cmd == "setSerial":
+                baud = int(msg.get("baud", _mock_data["status"]["baud"]))
+                databits = int(msg.get("databits", _mock_data["status"]["databits"]))
+                parity = str(msg.get("parity", _mock_data["status"]["parity"]))
+                stopbits = int(msg.get("stopbits", _mock_data["status"]["stopbits"]))
+                config = f"{databits}{parity}{stopbits}"
+                for section in ("status", "settings"):
+                    _mock_data[section]["baud"] = baud
+                    _mock_data[section]["databits"] = databits
+                    _mock_data[section]["parity"] = parity
+                    _mock_data[section]["stopbits"] = stopbits
+                    _mock_data[section]["config"] = config
+                await websocket.send(json.dumps({
+                    "type": "serialConfig",
+                    "baud": baud,
+                    "databits": databits,
+                    "parity": parity,
+                    "stopbits": stopbits,
+                    "config": config
+                }))
+            elif cmd == "setPassthrough":
+                mode = msg.get("mode", "both")
+                _mock_data["status"]["passthroughMode"] = mode
+                _mock_data["settings"]["passthroughMode"] = mode
+                await websocket.send(json.dumps({"type": "passthroughConfig", "mode": mode}))
             elif cmd == "savesettings" or cmd == "savewifi":
                 await websocket.send(json.dumps({"type": "saved"}))
             elif cmd == "clearHistory":
+                for port in _mock_data["status"]["ports"]:
+                    port["rxBytes"] = 0
+                    port["txBytes"] = 0
+                _mock_data["status"]["rxBytes"] = 0
+                _mock_data["status"]["txBytes"] = 0
+                _mock_data.setdefault("history", {"type": "history", "items": []})["items"] = []
                 await websocket.send(json.dumps({"type": "cleared"}))
             else:
                 print(f"[dev] Unhandled WS command: {cmd}")

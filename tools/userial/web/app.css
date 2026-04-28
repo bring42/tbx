@@ -1,19 +1,101 @@
 /* RS-232 Serial Tool — specific styles */
 .stat-rx .stat-value { color: var(--success); }
 .stat-tx .stat-value { color: var(--warning); }
-.log-rx { color: var(--success); }
-.log-tx { color: var(--warning); }
 .log-hex { color: var(--primary); }
 .log-ascii { color: var(--text-muted); }
+.log-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+}
+.log-time { color: var(--text-muted); }
 .log-dir {
-    display: inline-block;
-    width: 24px;
-    font-weight: 600;
+    font-weight: 700;
+    min-width: 24px;
 }
 .log-dir.rx { color: var(--success); }
 .log-dir.tx { color: var(--warning); }
+.port-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+}
+.port-a { background: var(--primary); }
+.port-b { background: var(--warning); }
+.passthrough { background: var(--success); }
+.forward-badge {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
 .btn-tx { background: var(--warning); }
 .btn-tx:hover { background: #d97706; }
+.port-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+.port-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.port-card-head,
+.section-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.port-meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.port-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+.port-stats div {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+}
+.port-stats span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+.port-stats strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.1rem;
+}
+.inline-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.inline-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.inline-controls select {
+    min-width: 120px;
+}
 
 /* Terminal */
 .terminal {
@@ -32,7 +114,7 @@
     font-size: 0.8rem;
     line-height: 1.5;
     white-space: pre-wrap;
-    word-break: break-all;
+    word-break: break-word;
 }
 .terminal-output .tx-line { color: var(--warning); }
 .terminal-output .rx-line { color: var(--success); }
