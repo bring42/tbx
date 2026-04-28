@@ -1,16 +1,24 @@
 {
     "status": {
         "type": "status",
-        "rxBytes": 1247,
-        "txBytes": 384,
+        "rxBytes": 2741,
+        "txBytes": 2998,
         "uptime": 4520,
         "baud": 9600,
+        "databits": 8,
+        "parity": "N",
+        "stopbits": 1,
         "config": "8N1",
+        "passthroughMode": "both",
         "heap": 142800,
         "mac": "AA:BB:CC:DD:EE:FF",
         "wifiMode": 0,
         "staConnected": false,
-        "apIP": "192.168.4.1"
+        "apIP": "192.168.4.1",
+        "ports": [
+            { "id": "A", "label": "Channel A", "rxPin": 4, "txPin": 5, "rxBytes": 1247, "txBytes": 1536 },
+            { "id": "B", "label": "Channel B", "rxPin": 6, "txPin": 7, "rxBytes": 1494, "txBytes": 1462 }
+        ]
     },
     "settings": {
         "type": "settings",
@@ -23,15 +31,12 @@
         "baud": 9600,
         "databits": 8,
         "parity": "N",
-        "stopbits": 1
-    },
-    "wifiscan": {
-        "type": "wifiscan",
-        "networks": [
-            { "ssid": "HomeNetwork", "rssi": -42, "enc": true },
-            { "ssid": "Office-5G", "rssi": -58, "enc": true },
-            { "ssid": "Guest-WiFi", "rssi": -71, "enc": false },
-            { "ssid": "Neighbor", "rssi": -82, "enc": true }
+        "stopbits": 1,
+        "config": "8N1",
+        "passthroughMode": "both",
+        "ports": [
+            { "id": "A", "label": "Channel A", "rxPin": 4, "txPin": 5, "rxBytes": 1247, "txBytes": 1536 },
+            { "id": "B", "label": "Channel B", "rxPin": 6, "txPin": 7, "rxBytes": 1494, "txBytes": 1462 }
         ]
     },
     "history": {
@@ -39,19 +44,24 @@
         "items": [
             {
                 "ts": 4510000,
-                "rx": true,
+                "port": "A",
+                "dir": "RX",
+                "forwardedTo": "B",
                 "hex": "41 54 49 0D 0A",
                 "ascii": "ATI\\r\\n"
             },
             {
-                "ts": 4511000,
-                "rx": false,
+                "ts": 4510500,
+                "port": "B",
+                "dir": "RX",
+                "forwardedTo": "A",
                 "hex": "4F 4B 0D 0A",
                 "ascii": "OK\\r\\n"
             },
             {
                 "ts": 4515000,
-                "rx": true,
+                "port": "A",
+                "dir": "TX",
                 "hex": "48 65 6C 6C 6F",
                 "ascii": "Hello"
             }

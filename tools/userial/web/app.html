@@ -8,7 +8,7 @@
 <!-- BODY -->
 <div id="monitor" class="tab-content active">
     <div class="card">
-        <h2 class="card-title">Statistics</h2>
+        <h2 class="card-title">Bridge Status</h2>
         <div class="stats">
             <div class="stat stat-rx">
                 <div class="stat-value" id="rxBytes">0</div>
@@ -23,33 +23,94 @@
                 <div class="stat-label">Uptime</div>
             </div>
             <div class="stat">
-                <div class="stat-value" id="baudRate">9600</div>
-                <div class="stat-label">Baud</div>
+                <div class="stat-value" id="serialConfigValue">9600 8N1</div>
+                <div class="stat-label">Serial Config</div>
+            </div>
+        </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="port-badge passthrough" id="passthroughBadge">Passthrough: both</span>
+            <span style="font-size:0.85rem;color:var(--text-muted);">Traffic is monitored on both UARTs while injections can target either channel.</span>
+        </div>
+    </div>
+
+    <div class="port-grid">
+        <div class="card port-card">
+            <div class="port-card-head">
+                <h2 class="card-title">Channel A</h2>
+                <span class="port-badge port-a">A</span>
+            </div>
+            <div class="port-meta" id="portAPins">RX GPIO4 · TX GPIO5</div>
+            <div class="port-stats">
+                <div><span>RX</span><strong id="portARx">0</strong></div>
+                <div><span>TX</span><strong id="portATx">0</strong></div>
+            </div>
+        </div>
+        <div class="card port-card">
+            <div class="port-card-head">
+                <h2 class="card-title">Channel B</h2>
+                <span class="port-badge port-b">B</span>
+            </div>
+            <div class="port-meta" id="portBPins">RX GPIO6 · TX GPIO7</div>
+            <div class="port-stats">
+                <div><span>RX</span><strong id="portBRx">0</strong></div>
+                <div><span>TX</span><strong id="portBTx">0</strong></div>
             </div>
         </div>
     </div>
+
     <div class="card">
-        <h2 class="card-title">Serial Data</h2>
-        <div class="log" id="log" style="height:300px;">
-            <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>
+        <div class="section-toolbar">
+            <h2 class="card-title">Traffic Monitor</h2>
+            <div class="inline-controls">
+                <label>
+                    View
+                    <select id="monitorFilter" onchange="refreshLogDisplay()">
+                        <option value="all">All</option>
+                        <option value="A">Channel A</option>
+                        <option value="B">Channel B</option>
+                    </select>
+                </label>
+                <label>
+                    Format
+                    <select id="displayMode" onchange="refreshLogDisplay()">
+                        <option value="both" selected>Hex + ASCII</option>
+                        <option value="hex">Hex Only</option>
+                        <option value="ascii">ASCII Only</option>
+                    </select>
+                </label>
+            </div>
         </div>
-        <div style="margin-top:8px;display:flex;gap:8px;">
-            <button class="btn-secondary" onclick="clearLog()" style="flex:1;">Clear Display</button>
-            <button class="btn-secondary" onclick="clearHistory()" style="flex:1;">Clear All</button>
-            <button class="btn-secondary" onclick="downloadLog()" style="flex:1;">Download</button>
+        <div class="log" id="log" style="height:320px;">
+            <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for traffic...</div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-secondary" onclick="clearLog()" style="flex:1;min-width:140px;">Clear Display</button>
+            <button class="btn-secondary" onclick="clearHistory()" style="flex:1;min-width:140px;">Clear Device History</button>
+            <button class="btn-secondary" onclick="downloadLog()" style="flex:1;min-width:140px;">Download</button>
         </div>
     </div>
 </div>
 
 <div id="terminal" class="tab-content">
     <div class="card">
-        <h2 class="card-title">Serial Console</h2>
+        <div class="section-toolbar">
+            <h2 class="card-title">Injection Terminal</h2>
+            <div class="inline-controls">
+                <label>
+                    Target Port
+                    <select id="termPortSelect">
+                        <option value="A">Channel A</option>
+                        <option value="B">Channel B</option>
+                    </select>
+                </label>
+            </div>
+        </div>
         <div class="terminal">
-            <div class="terminal-output" id="termOutput"><span class="sys-line">--- Serial Console Ready ---
+            <div class="terminal-output" id="termOutput"><span class="sys-line">--- Dual-channel terminal ready ---
 </span></div>
             <div class="terminal-input-row">
                 <span class="terminal-prompt">&gt;</span>
-                <input type="text" class="terminal-input" id="termInput" placeholder="Type command and press Enter..." autocomplete="off" spellcheck="false">
+                <input type="text" class="terminal-input" id="termInput" placeholder="Type data to inject and press Enter..." autocomplete="off" spellcheck="false">
             </div>
         </div>
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -61,7 +122,7 @@
                 <span style="font-size:0.8rem;">Add CR+LF</span>
                 <div class="toggle active" id="termCrlfToggle" onclick="toggleTermCrlf()"></div>
             </div>
-            <div class="form-group" style="flex:1; min-width:100px; margin:0;">
+            <div class="form-group" style="flex:1; min-width:140px; margin:0;">
                 <select id="termLineEnding" style="padding:6px 8px;font-size:0.8rem;">
                     <option value="crlf">CR+LF (\r\n)</option>
                     <option value="cr">CR (\r)</option>
@@ -73,18 +134,29 @@
         <div class="quick-btns" style="margin-top:12px;">
             <button class="btn-secondary" onclick="termSendQuick('ATI')">ATI</button>
             <button class="btn-secondary" onclick="termSendQuick('AT')">AT</button>
+            <button class="btn-secondary" onclick="termSendQuick('+++')">+++</button>
             <button class="btn-secondary" onclick="termClear()">Clear</button>
-            <button class="btn-secondary" onclick="termSendQuick('')">Send Empty</button>
         </div>
     </div>
 </div>
 
 <div id="send" class="tab-content">
     <div class="card">
-        <h2 class="card-title">Send ASCII</h2>
+        <div class="section-toolbar">
+            <h2 class="card-title">Send ASCII</h2>
+            <div class="inline-controls">
+                <label>
+                    Target Port
+                    <select id="asciiPortSelect">
+                        <option value="A">Channel A</option>
+                        <option value="B">Channel B</option>
+                    </select>
+                </label>
+            </div>
+        </div>
         <div class="form-group">
             <label for="asciiData">Text Data</label>
-            <textarea id="asciiData" placeholder="Enter text to send..."></textarea>
+            <textarea id="asciiData" placeholder="Enter text to inject..."></textarea>
         </div>
         <div class="toggle-row" style="margin-bottom:12px;">
             <span>Append CR+LF</span>
@@ -92,14 +164,25 @@
         </div>
         <button class="btn-tx" onclick="sendAscii()">Send ASCII</button>
         <div class="quick-btns">
-            <button class="btn-secondary" onclick="sendQuickAscii('ATI\\r\\n')">ATI (Modem Info)</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('AT\\r\\n')">AT (Test)</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('Hello RS232\\r\\n')">Hello RS232</button>
-            <button class="btn-secondary" onclick="sendQuickAscii('\\x1B[2J')">Clear Screen (ESC)</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('ATI\\r\\n')">ATI</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('AT\\r\\n')">AT</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('Hello from TBX\\r\\n')">Hello</button>
+            <button class="btn-secondary" onclick="sendQuickAscii('\\x1B[2J')">ESC Clear</button>
         </div>
     </div>
     <div class="card">
-        <h2 class="card-title">Send Hex</h2>
+        <div class="section-toolbar">
+            <h2 class="card-title">Send Hex</h2>
+            <div class="inline-controls">
+                <label>
+                    Target Port
+                    <select id="hexPortSelect">
+                        <option value="A">Channel A</option>
+                        <option value="B">Channel B</option>
+                    </select>
+                </label>
+            </div>
+        </div>
         <div class="form-group">
             <label for="hexData">Hex Bytes (space separated)</label>
             <input type="text" id="hexData" placeholder="48 65 6C 6C 6F">
@@ -107,9 +190,9 @@
         <button onclick="sendHex()">Send Hex</button>
         <div class="quick-btns">
             <button class="btn-secondary" onclick="sendQuickHex('02 00 01 03')">STX ... ETX</button>
-            <button class="btn-secondary" onclick="sendQuickHex('1B 5B 32 4A')">ESC[2J (Clear)</button>
+            <button class="btn-secondary" onclick="sendQuickHex('1B 5B 32 4A')">ESC[2J</button>
             <button class="btn-secondary" onclick="sendQuickHex('0D 0A')">CR LF</button>
-            <button class="btn-secondary" onclick="sendQuickHex('00 FF')">NUL + 0xFF</button>
+            <button class="btn-secondary" onclick="sendQuickHex('00 FF')">NUL + FF</button>
         </div>
     </div>
 </div>
@@ -118,20 +201,15 @@
 <div class="settings-section">
     <h3 class="settings-section-title">Display</h3>
     <div class="setting-item">
-        <div class="form-group">
-            <label>Format</label>
-            <select id="displayMode" onchange="refreshLogDisplay()">
-                <option value="both" selected>Hex + ASCII</option>
-                <option value="hex">Hex Only</option>
-                <option value="ascii">ASCII Only</option>
-            </select>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
             <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
                 <input type="checkbox" id="showTimestamp" checked onchange="refreshLogDisplay()"> Show Timestamp
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="showDirection" checked onchange="refreshLogDisplay()"> Show TX/RX Direction
+                <input type="checkbox" id="showDirection" checked onchange="refreshLogDisplay()"> Show RX/TX Direction
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="showPort" checked onchange="refreshLogDisplay()"> Show Channel Badge
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
                 <input type="checkbox" id="showControlChars" checked onchange="refreshLogDisplay()"> Show Control Chars (\r\n)
@@ -156,7 +234,10 @@
                 <input type="checkbox" id="exportTimestamp"> Include Timestamp
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
-                <input type="checkbox" id="exportDirection"> Include TX/RX Direction
+                <input type="checkbox" id="exportDirection" checked> Include RX/TX Direction
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
+                <input type="checkbox" id="exportPort" checked> Include Channel
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;">
                 <input type="checkbox" id="exportControlChars"> Include Control Chars
@@ -180,6 +261,7 @@
                 <option value="38400">38400</option>
                 <option value="57600">57600</option>
                 <option value="115200">115200</option>
+                <option value="230400">230400</option>
             </select>
         </div>
         <div class="form-row" style="margin-top:12px;">
@@ -211,16 +293,36 @@
 </div>
 
 <div class="settings-section">
+    <h3 class="settings-section-title">Passthrough</h3>
+    <div class="setting-item">
+        <div class="form-group">
+            <label>Mode</label>
+            <select id="passthroughModeSelect">
+                <option value="off">Disabled</option>
+                <option value="a_to_b">A → B only</option>
+                <option value="b_to_a">B → A only</option>
+                <option value="both" selected>Bidirectional</option>
+            </select>
+        </div>
+        <p style="margin:12px 0 0;font-size:0.85rem;color:var(--text-muted);">
+            When passthrough is enabled, bytes received on one UART are forwarded to the other UART while still being visible in the monitor.
+        </p>
+        <button onclick="savePassthroughMode()" style="margin-top:12px;">Apply Passthrough Mode</button>
+    </div>
+</div>
+
+<div class="settings-section">
     <h3 class="settings-section-title">Pin Configuration</h3>
     <div class="setting-item">
         <pre style="margin:0;font-size:0.75rem;color:var(--text-muted);overflow-x:auto;">
-ESP32-C3 (XIAO)     MAX3232          DB9
-────────────────────────────────────────
-GPIO5 (D3/TX) ────> T1IN
-                    T1OUT ─────────> Pin 3 (TX)
-GPIO4 (D2/RX) <──── R1OUT
-                    R1IN <───────── Pin 2 (RX)
-GND ───────────────> GND ──────────> Pin 5 (GND)
-3.3V ──────────────> VCC</pre>
+Channel A (default)           Channel B (default)
+──────────────────────        ──────────────────────
+RX GPIO4 (D2)                RX GPIO6 (D4)
+TX GPIO5 (D3)                TX GPIO7 (D5)
+
+Override with:
+- `SERIAL_A_RX_PIN` / `SERIAL_A_TX_PIN`
+- `SERIAL_B_RX_PIN` / `SERIAL_B_TX_PIN`
+        </pre>
     </div>
 </div>

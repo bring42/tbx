@@ -1,18 +1,10 @@
-/* ============================================================
-   RS-232 Serial Tool — App JS
-   Tool-specific WebSocket handlers, UI logic
-   ============================================================ */
-
 const log = document.getElementById('log');
 let logEntries = [];
 let appendCrlf = true;
 let localEcho = true;
-let termAddCrlf = true;
 let termHistory = [];
 let termHistoryIdx = -1;
 let termCurrentInput = '';
-
-// --- base.js hooks -------------------------------------------------------
 
 function onConnected() {
     wsSend({ cmd: 'status' });
@@ -26,120 +18,169 @@ function onSettingsOpen() {
 
 function onMessage(data) {
     if (data.type === 'status') {
-        document.getElementById('rxBytes').textContent = data.rxBytes || 0;
-        document.getElementById('txBytes').textContent = data.txBytes || 0;
-        document.getElementById('uptime').textContent = formatUptime(data.uptime);
-        document.getElementById('baudRate').textContent = data.baud || 9600;
+        renderStatus(data);
+    } else if (data.type === 'settings') {
+        populateToolSettings(data);
     } else if (data.type === 'rx') {
-        addLogEntry({ ...data, dir: 'RX' });
-        document.getElementById('rxBytes').textContent = data.total || 0;
-        terminalAppend(data.ascii || '', 'rx-line');
+        const entry = normalizeEntry({ ...data, dir: 'RX' });
+        addLogEntry(entry);
+        updateTrafficStats(data, true);
+        terminalAppend('[' + entry.port + '] ' + decodeDisplayText(entry.ascii) + '\n', 'rx-line');
     } else if (data.type === 'sent') {
-        addLogEntry({ ...data, dir: 'TX' });
-        document.getElementById('txBytes').textContent = data.total || 0;
-        // Terminal TX shown via local echo, skip here
+        const entry = normalizeEntry({ ...data, dir: 'TX' });
+        addLogEntry(entry);
+        updateTrafficStats(data, false);
     } else if (data.type === 'history') {
         loadHistory(data);
-    } else if (data.type === 'settings') {
-        document.getElementById('baudSelect').value = data.baud || 9600;
-        document.getElementById('databitsSelect').value = data.databits || 8;
-        document.getElementById('paritySelect').value = data.parity || 'N';
-        document.getElementById('stopbitsSelect').value = data.stopbits || 1;
     } else if (data.type === 'serialConfig') {
-        document.getElementById('baudRate').textContent = data.baud;
+        document.getElementById('serialConfigValue').textContent = data.baud + ' ' + data.config;
+        populateToolSettings(data);
         showToast('Serial configured: ' + data.baud + ' ' + data.config, 'success');
+    } else if (data.type === 'passthroughConfig') {
+        updatePassthroughBadge(data.mode || 'off');
+        document.getElementById('passthroughModeSelect').value = data.mode || 'off';
+        showToast('Passthrough updated: ' + (data.mode || 'off'), 'success');
     } else if (data.type === 'cleared') {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
-        logEntries = [];
+        clearLog();
         document.getElementById('rxBytes').textContent = '0';
         document.getElementById('txBytes').textContent = '0';
+        setPortValue('A', 'Rx', 0);
+        setPortValue('A', 'Tx', 0);
+        setPortValue('B', 'Rx', 0);
+        setPortValue('B', 'Tx', 0);
+        termClear('--- Cleared ---\n');
     } else if (data.type === 'error') {
         showToast(data.msg || 'Error', 'error');
     }
 }
 
-// --- Log -----------------------------------------------------------------
+function normalizeEntry(data) {
+    const port = (data.port || 'A').toUpperCase();
+    const dir = data.dir || (data.rx ? 'RX' : 'TX');
+    return {
+        port,
+        dir,
+        ts: data.ts,
+        len: data.len || 0,
+        hex: data.hex || '',
+        ascii: data.ascii || '',
+        forwardedTo: data.forwardedTo || '',
+        timeStr: data.timeStr || formatTimestamp(data.ts)
+    };
+}
 
-function addLogEntry(data, prepend) {
-    if (prepend === undefined) prepend = true;
+function renderStatus(data) {
+    document.getElementById('rxBytes').textContent = data.rxBytes || 0;
+    document.getElementById('txBytes').textContent = data.txBytes || 0;
+    document.getElementById('uptime').textContent = formatUptime(data.uptime || 0);
+    document.getElementById('serialConfigValue').textContent = (data.baud || 9600) + ' ' + (data.config || '8N1');
+    updatePassthroughBadge(data.passthroughMode || 'off');
+    (data.ports || []).forEach(port => {
+        document.getElementById('port' + port.id + 'Pins').textContent = 'RX GPIO' + port.rxPin + ' · TX GPIO' + port.txPin;
+        setPortValue(port.id, 'Rx', port.rxBytes || 0);
+        setPortValue(port.id, 'Tx', port.txBytes || 0);
+    });
+}
+
+function populateToolSettings(data) {
+    if (data.baud) document.getElementById('baudSelect').value = data.baud;
+    if (data.databits) document.getElementById('databitsSelect').value = data.databits;
+    if (data.parity) document.getElementById('paritySelect').value = data.parity;
+    if (data.stopbits) document.getElementById('stopbitsSelect').value = data.stopbits;
+    if (data.passthroughMode) document.getElementById('passthroughModeSelect').value = data.passthroughMode;
+}
+
+function updatePassthroughBadge(mode) {
+    document.getElementById('passthroughBadge').textContent = 'Passthrough: ' + mode;
+}
+
+function setPortValue(port, kind, value) {
+    const el = document.getElementById('port' + port + kind);
+    if (el) el.textContent = value;
+}
+
+function updateTrafficStats(data, isRx) {
+    if (isRx) {
+        document.getElementById('rxBytes').textContent = data.total || 0;
+        if (data.port) setPortValue(data.port, 'Rx', data.portRxBytes || 0);
+        if (data.forwardedTo) setPortValue(data.forwardedTo, 'Tx', data.peerTxBytes || 0);
+    } else {
+        document.getElementById('txBytes').textContent = data.total || 0;
+        if (data.port) setPortValue(data.port, 'Tx', data.portTxBytes || 0);
+    }
+}
+
+function addLogEntry(data, prepend = true) {
+    const entryData = normalizeEntry(data);
     if (logEntries.length === 0) log.innerHTML = '';
 
-    const time = data.timeStr || formatTimestamp(data.ts);
-    const isRx = data.dir === 'RX';
+    if (prepend) {
+        logEntries.unshift(entryData);
+        if (logEntries.length > 200) logEntries.pop();
+    } else {
+        logEntries.push(entryData);
+    }
+    refreshLogDisplay();
+}
+
+function entryMatchesFilter(entry) {
+    const filter = document.getElementById('monitorFilter').value;
+    return filter === 'all' || entry.port === filter;
+}
+
+function renderLogEntry(entry) {
     const showTime = document.getElementById('showTimestamp').checked;
     const showDir = document.getElementById('showDirection').checked;
+    const showPort = document.getElementById('showPort').checked;
     const showCtrl = document.getElementById('showControlChars').checked;
     const mode = document.getElementById('displayMode').value;
-
-    let ascii = data.ascii || '';
+    let ascii = entry.ascii || '';
     if (!showCtrl) ascii = ascii.replace(/\\r/g, '').replace(/\\n/g, '').replace(/\\t/g, '');
 
-    let html = '';
-    if (showTime) html += '<span class="log-time">' + time + '</span>';
-    if (showDir) html += '<span class="log-dir ' + (isRx ? 'rx' : 'tx') + '">' + data.dir + '</span> ';
-    if (mode === 'both' || mode === 'hex') {
-        html += '<span class="log-hex">' + (data.hex || '') + '</span>';
-    }
-    if (mode === 'both') {
-        html += ' <span class="log-ascii">[' + ascii + ']</span>';
-    } else if (mode === 'ascii') {
-        html += '<span class="log-ascii">' + ascii + '</span>';
-    }
-
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = html;
-
-    if (prepend) {
-        log.insertBefore(entry, log.firstChild);
-        logEntries.unshift(data);
-        if (logEntries.length > 200) {
-            logEntries.pop();
-            if (log.lastChild) log.removeChild(log.lastChild);
-        }
-    } else {
-        log.appendChild(entry);
-        logEntries.push(data);
-    }
+    const parts = [];
+    if (showTime) parts.push('<span class="log-time">' + entry.timeStr + '</span>');
+    if (showPort) parts.push('<span class="port-badge port-' + entry.port.toLowerCase() + '">' + entry.port + '</span>');
+    if (showDir) parts.push('<span class="log-dir ' + entry.dir.toLowerCase() + '">' + entry.dir + '</span>');
+    if (entry.forwardedTo) parts.push('<span class="forward-badge">→ ' + entry.forwardedTo + '</span>');
+    if (mode === 'both' || mode === 'hex') parts.push('<span class="log-hex">' + escapeHtml(entry.hex || '') + '</span>');
+    if (mode === 'both') parts.push('<span class="log-ascii">[' + escapeHtml(ascii) + ']</span>');
+    else if (mode === 'ascii') parts.push('<span class="log-ascii">' + escapeHtml(ascii) + '</span>');
+    return '<div class="log-entry"><div class="log-line">' + parts.join(' ') + '</div></div>';
 }
 
 function loadHistory(data) {
     logEntries = [];
-    log.innerHTML = '';
     if (!data.items || data.items.length === 0) {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
+        clearLog();
         return;
     }
-    data.items.forEach(item => {
-        item.dir = item.rx ? 'RX' : 'TX';
-        item.timeStr = formatTimestamp(item.ts);
-        addLogEntry(item, false);
-    });
+    data.items.slice().reverse().forEach(item => logEntries.push(normalizeEntry(item)));
+    refreshLogDisplay();
 }
 
 function clearLog() {
     logEntries = [];
-    log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
+    log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for traffic...</div>';
 }
 
 function refreshLogDisplay() {
-    const entries = [...logEntries];
-    logEntries = [];
-    log.innerHTML = '';
-    if (entries.length === 0) {
-        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for data...</div>';
-    } else {
-        entries.forEach(e => addLogEntry(e, false));
+    const filtered = logEntries.filter(entryMatchesFilter);
+    if (filtered.length === 0) {
+        log.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px 0;">Waiting for traffic...</div>';
+        return;
     }
+    log.innerHTML = filtered.map(renderLogEntry).join('');
 }
 
 function clearHistory() {
-    if (confirm('Clear all history and statistics?')) {
+    if (confirm('Clear captured history and counters on the device?')) {
         wsSend({ cmd: 'clearHistory' });
     }
 }
 
-// --- Download / Export ---------------------------------------------------
+function decodeDisplayText(text) {
+    return String(text || '').replace(/\\r/g, '\r').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+}
 
 function downloadLog() {
     if (logEntries.length === 0) {
@@ -149,35 +190,42 @@ function downloadLog() {
     const fmt = document.getElementById('exportFormat').value;
     const incTime = document.getElementById('exportTimestamp').checked;
     const incDir = document.getElementById('exportDirection').checked;
+    const incPort = document.getElementById('exportPort').checked;
     const incCtrl = document.getElementById('exportControlChars').checked;
 
-    let text = 'RS-232 Serial Log - ' + new Date().toISOString() + '\n';
+    let text = 'Dual UART Serial Log - ' + new Date().toISOString() + '\n';
     text += '='.repeat(60) + '\n\n';
 
     logEntries.forEach(entry => {
-        const time = entry.timeStr || formatTimestamp(entry.ts);
-        const dir = entry.dir || (entry.rx ? 'RX' : 'TX');
         let ascii = entry.ascii || '';
         if (!incCtrl) ascii = ascii.replace(/\\r/g, '').replace(/\\n/g, '').replace(/\\t/g, '');
-        let line = '';
-        if (incTime) line += '[' + time + '] ';
-        if (incDir) line += dir + ' ';
-        if (fmt === 'hex') {
-            line += (entry.hex || '');
-        } else if (fmt === 'ascii') {
-            line += ascii;
-        } else {
-            line += 'HEX: ' + (entry.hex || '') + ' ASCII: ' + ascii;
-        }
-        text += line + '\n';
+        const line = [];
+        if (incTime) line.push('[' + entry.timeStr + ']');
+        if (incPort) line.push(entry.port);
+        if (incDir) line.push(entry.dir);
+        if (entry.forwardedTo) line.push('→ ' + entry.forwardedTo);
+        if (fmt === 'hex') line.push(entry.hex || '');
+        else if (fmt === 'ascii') line.push(ascii);
+        else line.push('HEX: ' + (entry.hex || '') + ' ASCII: ' + ascii);
+        text += line.join(' ') + '\n';
     });
 
     const blob = new Blob([text], { type: 'text/plain' });
-    downloadBlob(blob, 'serial_log_' + new Date().toISOString().replace(/[:.]/g, '-') + '.txt');
+    downloadBlob(blob, 'dual_uart_log_' + new Date().toISOString().replace(/[:.]/g, '-') + '.txt');
     showToast('Log downloaded', 'success');
 }
 
-// --- Send ----------------------------------------------------------------
+function selectedPort(selectId) {
+    return document.getElementById(selectId).value || 'A';
+}
+
+function processEscapes(text) {
+    return text
+        .replace(/\\r/g, '\r')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\x([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
 
 function toggleCRLF() {
     toggleSwitch('crlfToggle', (active) => { appendCrlf = active; });
@@ -186,29 +234,23 @@ function toggleCRLF() {
 function sendAscii() {
     const data = document.getElementById('asciiData').value;
     if (!data) { showToast('Enter text to send', 'error'); return; }
-    wsSend({ cmd: 'sendAscii', data: data, crlf: appendCrlf });
+    wsSend({ cmd: 'sendAscii', port: selectedPort('asciiPortSelect'), data: processEscapes(data), crlf: appendCrlf });
 }
 
 function sendQuickAscii(text) {
-    const processed = text
-        .replace(/\\r/g, '\r')
-        .replace(/\\n/g, '\n')
-        .replace(/\\x([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
-    wsSend({ cmd: 'sendAscii', data: processed, crlf: false });
+    wsSend({ cmd: 'sendAscii', port: selectedPort('asciiPortSelect'), data: processEscapes(text), crlf: false });
 }
 
 function sendHex() {
     const data = document.getElementById('hexData').value.trim();
     if (!data) { showToast('Enter hex bytes to send', 'error'); return; }
     if (!/^[0-9a-fA-F\s,]+$/.test(data)) { showToast('Invalid hex format', 'error'); return; }
-    wsSend({ cmd: 'sendHex', data: data });
+    wsSend({ cmd: 'sendHex', port: selectedPort('hexPortSelect'), data });
 }
 
 function sendQuickHex(hex) {
-    wsSend({ cmd: 'sendHex', data: hex });
+    wsSend({ cmd: 'sendHex', port: selectedPort('hexPortSelect'), data: hex });
 }
-
-// --- Terminal ------------------------------------------------------------
 
 function toggleLocalEcho() {
     toggleSwitch('localEchoToggle', (active) => { localEcho = active; });
@@ -216,7 +258,6 @@ function toggleLocalEcho() {
 
 function toggleTermCrlf() {
     toggleSwitch('termCrlfToggle', (active) => {
-        termAddCrlf = active;
         document.getElementById('termLineEnding').value = active ? 'crlf' : 'none';
     });
 }
@@ -235,8 +276,7 @@ function terminalAppend(text, className) {
     const output = document.getElementById('termOutput');
     const span = document.createElement('span');
     span.className = className || 'rx-line';
-    // Clean control chars for display, keep newlines
-    span.textContent = text.replace(/\r/g, '').replace(/\\r/g, '');
+    span.textContent = text;
     output.appendChild(span);
     output.scrollTop = output.scrollHeight;
 }
@@ -246,22 +286,16 @@ function termSend(text) {
         showToast('Not connected', 'error');
         return;
     }
-    const lineEnding = getLineEnding();
-    const fullText = text + lineEnding;
 
-    // Local echo
-    if (localEcho) {
-        terminalAppend(text + '\n', 'tx-line');
-    }
-
-    // Command history
+    const fullText = text + getLineEnding();
+    if (localEcho) terminalAppend('[' + selectedPort('termPortSelect') + '] ' + text + '\n', 'tx-line');
     if (text && (termHistory.length === 0 || termHistory[termHistory.length - 1] !== text)) {
         termHistory.push(text);
         if (termHistory.length > 50) termHistory.shift();
     }
     termHistoryIdx = -1;
 
-    wsSend({ cmd: 'sendAscii', data: fullText, crlf: false });
+    wsSend({ cmd: 'sendAscii', port: selectedPort('termPortSelect'), data: fullText, crlf: false });
 }
 
 function termSendQuick(text) {
@@ -272,11 +306,9 @@ function termSendQuick(text) {
     input.focus();
 }
 
-function termClear() {
-    document.getElementById('termOutput').innerHTML = '<span class="sys-line">--- Cleared ---\n</span>';
+function termClear(message) {
+    document.getElementById('termOutput').innerHTML = '<span class="sys-line">' + (message || '--- Cleared ---\n') + '</span>';
 }
-
-// --- Terminal input key handling -----------------------------------------
 
 document.getElementById('termInput').addEventListener('keydown', (e) => {
     const input = e.target;
@@ -312,20 +344,22 @@ document.getElementById('termInput').addEventListener('keydown', (e) => {
 });
 
 document.getElementById('termLineEnding').addEventListener('change', (e) => {
-    termAddCrlf = e.target.value !== 'none';
-    document.getElementById('termCrlfToggle').classList.toggle('active', termAddCrlf);
+    document.getElementById('termCrlfToggle').classList.toggle('active', e.target.value !== 'none');
 });
-
-// --- Settings ------------------------------------------------------------
 
 function saveSerialConfig() {
     wsSend({
         cmd: 'setSerial',
-        baud: parseInt(document.getElementById('baudSelect').value),
-        databits: parseInt(document.getElementById('databitsSelect').value),
+        baud: parseInt(document.getElementById('baudSelect').value, 10),
+        databits: parseInt(document.getElementById('databitsSelect').value, 10),
         parity: document.getElementById('paritySelect').value,
-        stopbits: parseInt(document.getElementById('stopbitsSelect').value)
+        stopbits: parseInt(document.getElementById('stopbitsSelect').value, 10)
     });
 }
 
-
+function savePassthroughMode() {
+    wsSend({
+        cmd: 'setPassthrough',
+        mode: document.getElementById('passthroughModeSelect').value
+    });
+}
